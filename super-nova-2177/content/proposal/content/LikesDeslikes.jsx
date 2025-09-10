@@ -6,13 +6,10 @@ import LikesInfo from "./LikesInfo";
 import { IoIosClose } from "react-icons/io";
 
 function LikesDeslikes() {
-  // State management
-  const [clicked, setClicked] = useState(null); // Track if user clicked "like" or "dislike"
-  const [likes, setLikes] = useState(11); // Number of likes
-  const [dislikes, setDislikes] = useState(2); // Number of dislikes
-  const [action, setAction] = useState(false); // Toggle for showing LikesInfo
-
-  // Handle like button click logic
+  const [clicked, setClicked] = useState(null);
+  const [likes, setLikes] = useState(11);
+  const [dislikes, setDislikes] = useState(2);
+  const [action, setAction] = useState(false);
   const handleLikeClick = () => {
     if (clicked === "like") {
       setLikes(likes - 1);
@@ -27,7 +24,6 @@ function LikesDeslikes() {
     }
   };
 
-  // Handle dislike button click logic
   const handleDislikeClick = () => {
     if (clicked === "dislike") {
       setDislikes(dislikes - 1);
@@ -44,7 +40,6 @@ function LikesDeslikes() {
 
   return (
     <>
-      {/* Like/Dislike buttons with counters and toggle button */}
       <div className="flex text-[var(--text-black)] bg-[var(--gray)] shadow-md w-fit gap-2 rounded-full px-1 py-1 items-center justify-between">
         <button
           onClick={handleLikeClick}
@@ -82,11 +77,7 @@ function LikesDeslikes() {
           />
         )}
       </div>
-
-      {/* Show LikesInfo component when action is true */}
-      <div className="absolute top-39 md:top-56 lg:top-112 xl:top-140">
-        {action ? <LikesInfo /> : ""}
-      </div>
+          <div className="absolute -top-45 md:-top-45 lg:-top-45 xl:-top-45">{action ? <LikesInfo /> : ""}</div>
     </>
   );
 }

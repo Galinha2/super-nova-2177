@@ -20,6 +20,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${interTight.variable} flex antialiased`}>
         <Header />
+        <span id="createPost"></span>
         <HeaderMobile />
         {children}
       </body>
