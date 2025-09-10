@@ -1,0 +1,20 @@
+{
+  "header": {
+    "titles": {
+      "home": "Home",
+      "profile": "Profile",
+      "proposals": "Proposals"
+    },
+    "mobiletitles": {
+      "placeholder": "Home",
+      "profile": "Profile",
+      "proposals": "Proposals"
+    },
+    "settings": {
+      "livebe": "Live BE",
+      "profile": "Profile",
+      "aiassistant": "AI Assistant",
+      "agents": "Agents & APIs"
+    }
+  }
+}
