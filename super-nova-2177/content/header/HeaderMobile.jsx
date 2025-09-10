@@ -43,7 +43,7 @@ function HeaderMobile() {
                   >
                     {/* Render the icon if it exists */}
                     {IconComponent && (
-                      <IconComponent className="text-[var(--black)] text-4xl [filter:drop-shadow(0_0_3px_var(--blue))]" />
+                      <IconComponent className="text-[var(--text-black)] text-4xl [filter:drop-shadow(0_0_3px_var(--blue))]" />
                     )}
                   </Link>
                 </LiquidGlass>

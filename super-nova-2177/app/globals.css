@@ -20,13 +20,19 @@
   --gray: #F0F1F6;
   --backgroundGray: #F5F5F7;
   --text-black: #1E1E1E;
-  --text-gray: #6F6F6F;
+  --transparent-black: #1e1e1ebe;
+  --transparent-gray: rgba(125, 125, 125, 0.258);
   --text-gray-light: #A6A6A6;
   --horizontal-line: #E0E0E0;
   --shadow: 0px 0px 5px #00000033;
   --shadow-header: 3px 0px 4px #00000021;
   --shadow-pink: 0px 0px 7px #FF375F;
-  --shadow-blue:#3562C5;
+  --shadow-blue: 0px 0px 7px #3562C5;
+  --neon-blue:#3562C5;
+}
+
+h1 {
+  font-weight: 600;
 }
 
 body, html {
