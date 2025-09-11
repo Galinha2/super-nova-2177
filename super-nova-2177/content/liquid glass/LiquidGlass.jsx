@@ -3,7 +3,7 @@ function LiquidGlass({children, className}) {
         <>
             <div className={`wrapper ${className}`}>
         <div className={`dock m-auto `}>
-          <div className="effect"></div>
+          <div className="effect blur"></div>
           <div className="tint"></div>
           <div className="shine"></div>
           <div className="text">

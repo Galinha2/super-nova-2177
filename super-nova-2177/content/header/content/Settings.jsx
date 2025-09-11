@@ -19,7 +19,7 @@ function Settings() {
         {Object.entries(settings).map(([key, label]) => (
           <div
             key={key}
-            className="cursor-pointer hover:scale-95 flex w-65 bg-[var(--transparent-white)] rounded-full shadow-md p-1 items-center gap-2"
+            className="cursor-pointer hover:scale-95 flex w-65 bgGray rounded-full shadow-md p-1 items-center gap-2"
           >
             <div className="flex items-center justify-center bg-[var(--gray)] rounded-full h-13 w-13 text-[var(--transparent-black)] shadow-md">
               {iconsMap[key]}

@@ -29,8 +29,8 @@ function HeaderMobile() {
           {header.map((item, index) => {
             const IconComponent = iconsMap[item];
             return (
-              <li key={index}>
-                <LiquidGlass className="cursor-pointer rounded-[20px] w-15 h-15 border-[1px] border-white transform transition-transform duration-300 hover:scale-105">
+              <li className="cursor-pointer rounded-[20px] w-15 h-15 bgGray transform transition-transform duration-300 hover:scale-105 flex items-center justify-center" key={index}>
+                
                   <Link
                     href={`/${item.toLowerCase()}`}
                     className="cursor-pointer flex items-center justify-center font-semibold text-[0.6em] text-[var(--text-gray)] gap-2"
@@ -39,12 +39,12 @@ function HeaderMobile() {
                       <IconComponent className="text-[var(--text-black)] text-4xl [filter:drop-shadow(0_0_3px_var(--blue))]" />
                     )}
                   </Link>
-                </LiquidGlass>
+
               </li>
             );
           })}
-          <li>
-            <LiquidGlass className="cursor-pointer hover:scale-105 rounded-[20px] w-15 h-15 flex items-center justify-center">
+          <li className="cursor-pointer hover:scale-105 rounded-[20px] w-15 h-15 flex items-center bgGray justify-center">
+           
               {showSettings ? (
                 <IoIosClose
                   onClick={() => setShowSettings(false)}
@@ -56,7 +56,7 @@ function HeaderMobile() {
                   className="text-[var(--pink)] text-5xl [filter:drop-shadow(0_0_7px_var(--pink))]"
                 />
               )}
-            </LiquidGlass>
+          
           </li>
         </ul>
       </LiquidGlass>

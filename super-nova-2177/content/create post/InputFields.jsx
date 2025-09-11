@@ -6,7 +6,7 @@ import { FaPlus } from "react-icons/fa6";
 function InputFields({setDiscard}) {
 
     return (
-        <div className="fixed z-90 top-100 md:top-0 left-0 lg:relative lg:mt-[-70px]">
+        <div className="fixed z-100 bottom-0 md:top-0 left-0 lg:relative lg:mt-[-70px]">
             <LiquidGlass className={"p-5 h-auto w-screen lg:w-150 xl:w-200 rounded-[30px]"}>
                 <div className="w-screen p-10 h-screen lg:h-auto lg:w-140 xl:w-190 flex text-[var(--text-black)] flex-col gap-4">
                     <h1>Title</h1>

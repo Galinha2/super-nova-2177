@@ -29,11 +29,23 @@ function Proposal() {
       time: "01:45 pm",
       title: "Check this out",
       video: "https://www.youtube.com/embed/ZeerrnuLi5E",
+      likes: 11,
+      dislikes: 2,
       comments: [
-        { image: "https://t4.ftcdn.net/jpg/03/96/16/79/360_F_396167959_aAhZiGlJoeXOBHivMvaO0Aloxvhg3eVT.jpg", name: "Ethan Black", comment: "Nice find!" },
+        {
+          image:
+            "https://t4.ftcdn.net/jpg/03/96/16/79/360_F_396167959_aAhZiGlJoeXOBHivMvaO0Aloxvhg3eVT.jpg",
+          name: "Ethan Black",
+          comment: "Nice find!",
+        },
         { name: "Fiona Gray", comment: "Thanks for sharing!" },
-        { image: "https://blog.stocksnap.io/content/images/2022/02/smiling-woman_W6GFOSFAXA.jpg", name: "Gray May", comment: "Thanks for sharing! for sharing! for sharing! for sharing!" }
-      ]
+        {
+          image:
+            "https://blog.stocksnap.io/content/images/2022/02/smiling-woman_W6GFOSFAXA.jpg",
+          name: "Gray May",
+          comment: "Thanks for sharing! for sharing! for sharing! for sharing!",
+        },
+      ],
     },
     {
       userName: "Alice Johnson",
@@ -41,10 +53,17 @@ function Proposal() {
       time: "09:15 am",
       title: "Excited to share this!",
       text: "Just finished my latest project, feeling accomplished!",
+      likes: 3,
+      dislikes: 1,
       comments: [
         { name: "Bob Smith", comment: "Amazing work!" },
-        { image: "https://img.freepik.com/free-photo/lifestyle-people-emotions-casual-concept-confident-nice-smiling-asian-woman-cross-arms-chest-confident-ready-help-listening-coworkers-taking-part-conversation_1258-59335.jpg", name: "Clara White", comment: "Congrats!" }
-      ]
+        {
+          image:
+            "https://img.freepik.com/free-photo/lifestyle-people-emotions-casual-concept-confident-nice-smiling-asian-woman-cross-arms-chest-confident-ready-help-listening-coworkers-taking-part-conversation_1258-59335.jpg",
+          name: "Clara White",
+          comment: "Congrats!",
+        },
+      ],
     },
     {
       userName: "Michael Brown",
@@ -52,9 +71,9 @@ function Proposal() {
       time: "11:30 am",
       title: "Watch this video!",
       video: "https://www.youtube.com/embed/2iK3ccCsI6s",
-      comments: [
-        { name: "Diana Green", comment: "Interesting video!" }
-      ]
+      likes: 1,
+      dislikes: 4,
+      comments: [{ name: "Diana Green", comment: "Interesting video!" }],
     },
     {
       userName: "Sophie Lee",
@@ -62,10 +81,17 @@ function Proposal() {
       time: "01:45 pm",
       title: "Check this out",
       video: "https://www.youtube.com/embed/phuiiNCxRMg",
+      likes: 11,
+      dislikes: 2,
       comments: [
-        { image:"https://www.shutterstock.com/image-photo/handsome-happy-african-american-bearded-600nw-2460702995.jpg", name: "Ethan Black", comment: "Nice find!" },
-        { name: "Fiona Gray", comment: "Thanks for sharing!" }
-      ]
+        {
+          image:
+            "https://www.shutterstock.com/image-photo/handsome-happy-african-american-bearded-600nw-2460702995.jpg",
+          name: "Ethan Black",
+          comment: "Nice find!",
+        },
+        { name: "Fiona Gray", comment: "Thanks for sharing!" },
+      ],
     },
     {
       userName: "Tom Harris",
@@ -73,7 +99,9 @@ function Proposal() {
       time: "03:00 pm",
       title: "Random thoughts",
       text: "It's been a productive day. Feeling motivated to continue learning new skills.",
-      comments: []
+      likes: 5,
+      dislikes: 2,
+      comments: [],
     },
     {
       userName: "Emma Wilson",
@@ -81,10 +109,10 @@ function Proposal() {
       time: "04:30 pm",
       title: "Another random post",
       text: "Sharing some thoughts on productivity and workflow optimization.",
-      comments: [
-        { name: "Liam King", comment: "Great insights!" }
-      ]
-    }
+      likes: 4,
+      dislikes: 12,
+      comments: [{ name: "Liam King", comment: "Great insights!" }],
+    },
   ];
 
   return (
@@ -107,6 +135,8 @@ function Proposal() {
           video={post.video}
           text={post.text}
           comments={post.comments}
+          likes={post.likes}
+          dislikes={post.dislikes}
         />
       ))}
     </div>

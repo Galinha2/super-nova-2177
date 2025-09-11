@@ -7,13 +7,15 @@ import DisplayComments from "./DisplayComments";
 import { useState } from "react";
 
 function ProposalCard({
-  userName = "Henrique Galinha",
-  userInitials = "HG",
-  time = "06:42 pm",
-  title = "Title Ipsum",
-  video = null,
-  image = null,
-  text = null,
+  userName,
+  userInitials,
+  time,
+  title,
+  video,
+  image,
+  text,
+  likes,
+  dislikes,
   comments = [],
 }) {
   const [showComments, setShowComments] = useState(false);
@@ -58,7 +60,7 @@ function ProposalCard({
 
         {/* Action bar */}
         <div className="relative flex justify-between w-full">
-          <LikesDeslikes />
+          <LikesDeslikes initialLikes={likes} initialDislikes={dislikes} />
           <Comments
             onClick={() => setShowComments(!showComments)}
             className="mx-auto"

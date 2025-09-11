@@ -1,14 +1,14 @@
-"use client"
+"use client";
 import { useState } from "react";
 import { BiSolidLike, BiSolidDislike } from "react-icons/bi";
 import { IoIosArrowUp } from "react-icons/io";
 import LikesInfo from "./LikesInfo";
 import { IoIosClose } from "react-icons/io";
 
-function LikesDeslikes() {
+function LikesDeslikes({ initialLikes, initialDislikes}) {
   const [clicked, setClicked] = useState(null);
-  const [likes, setLikes] = useState(11);
-  const [dislikes, setDislikes] = useState(2);
+  const [likes, setLikes] = useState(initialLikes);
+  const [dislikes, setDislikes] = useState(initialDislikes);
   const [action, setAction] = useState(false);
   const handleLikeClick = () => {
     if (clicked === "like") {
@@ -44,11 +44,13 @@ function LikesDeslikes() {
         <button
           onClick={handleLikeClick}
           style={{
-            color: clicked === "like" ? "white" : "var(--text-black)" ,
+            color: clicked === "like" ? "white" : "var(--text-black)",
             background: clicked === "like" ? "var(--pink)" : "transparent",
-            boxShadow: clicked === "like" ? "var(--shadow-pink)" : "none"
+            boxShadow: clicked === "like" ? "var(--shadow-pink)" : "none",
           }}
-          className={`flex items-center justify-center gap-1 rounded-full px-2 py-0 h-[30px] cursor-pointer ${clicked === "like" ? "" : ""}`}
+          className={`flex items-center justify-center gap-1 rounded-full px-2 py-0 h-[30px] cursor-pointer ${
+            clicked === "like" ? "" : ""
+          }`}
         >
           <BiSolidLike />
           <p className="h-fit">{likes}</p>
@@ -58,9 +60,11 @@ function LikesDeslikes() {
           style={{
             color: clicked === "dislike" ? "white" : "var(--text-black)",
             background: clicked === "dislike" ? "var(--blue)" : "transparent",
-            boxShadow: clicked === "dislike" ? "var(--shadow-blue)" : "none"
+            boxShadow: clicked === "dislike" ? "var(--shadow-blue)" : "none",
           }}
-          className={`flex items-center justify-center gap-1 rounded-full px-2 h-[30px] py-0 cursor-pointer ${clicked === "dislike" ? "" : ""}`}
+          className={`flex items-center justify-center gap-1 rounded-full px-2 h-[30px] py-0 cursor-pointer ${
+            clicked === "dislike" ? "" : ""
+          }`}
         >
           <BiSolidDislike />
           <p className="h-fit">{dislikes}</p>
@@ -77,7 +81,9 @@ function LikesDeslikes() {
           />
         )}
       </div>
-          <div className="absolute -top-45 md:-top-45 lg:-top-45 xl:-top-45">{action ? <LikesInfo /> : ""}</div>
+      <div className="absolute -top-45 md:-top-45 lg:-top-45 xl:-top-45">
+        {action ? <LikesInfo /> : ""}
+      </div>
     </>
   );
 }
