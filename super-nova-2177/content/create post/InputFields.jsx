@@ -2,27 +2,39 @@
 import { useState } from "react";
 import LiquidGlass from "../liquid glass/LiquidGlass"
 import { FaPlus } from "react-icons/fa6";
+import { FaImage } from "react-icons/fa6";
+import { FaVideo } from "react-icons/fa6";
+import { FaLink } from "react-icons/fa";
+import { FaFileAlt } from "react-icons/fa";
+
 
 function InputFields({setDiscard}) {
 
     return (
         <div className="fixed z-100 bottom-0 md:top-0 left-0 lg:relative lg:mt-[-70px]">
-            <LiquidGlass className={"p-5 h-auto w-screen lg:w-150 xl:w-200 rounded-[30px]"}>
-                <div className="w-screen p-10 h-screen lg:h-auto lg:w-140 xl:w-190 flex text-[var(--text-black)] flex-col gap-4">
+            <LiquidGlass className={"lg:p-5 h-auto bgGrayDark w-screen lg:w-150 xl:w-200 lg:rounded-[30px]"}>
+                <div className="w-screen pt-30 lg:pt-0 p-5 lg:p-0 m-auto h-screen lg:h-auto lg:w-140 xl:w-190 flex text-[var(--text-black)] flex-col gap-4">
                     <h1>Title</h1>
                     <input className="bg-white rounded-full shadow-md px-4 py-1 w-full text-[0.6em]" type="text" placeholder="Insert Title" />
-                    <textarea className="bg-white rounded-[20px] h-50 shadow-md px-4 py-1 w-full text-[0.6em]" type="text" placeholder="Insert Title" />
+                    <textarea className="bg-white rounded-[20px] h-50 shadow-md px-4 py-1 w-full text-[0.6em]" type="text" placeholder="Insert Text" />
                     <div className="flex gap-3 text-[0.6em]">
-                        <div>
-                            <h1>Image</h1>
-                            <div className="rounded-full bg-white shadow-md w-10 h-10 flex items-center justify-center">
-                                <FaPlus />
-                            </div>
-                        </div>
-                        <div className="w-full">
-                            <h1>Video</h1>
-                            <input className="bg-white h-10 rounded-full shadow-md px-4 py-1 w-full text-[0.6em]" type="text" placeholder="Insert Video URL" />
-                        </div>
+                        {/* icons aqui */}
+                        <button className="bgGray cursor-pointer rounded-full w-10 h-10 flex items-center justify-center relative group">
+                            <FaImage className="text-2xl"/>
+                            <span className="absolute bottom-full w-20 mb-1 hidden group-hover:block bg-black text-white text-[0.6em] rounded px-2 py-1">Insert Image</span>
+                        </button>
+                        <button className="bgGray cursor-pointer rounded-full w-10 h-10 flex items-center justify-center relative group">
+                            <FaVideo className="text-2xl"/>
+                            <span className="absolute bottom-full w-20 mb-1 hidden group-hover:block bg-black text-white text-[0.6em] rounded px-2 py-1">Insert Video</span>
+                        </button>
+                        <button className="bgGray cursor-pointer rounded-full w-10 h-10 flex items-center justify-center relative group">
+                            <FaLink className="text-2xl"/>
+                            <span className="absolute bottom-full w-20 mb-1 hidden group-hover:block bg-black text-white text-[0.6em] rounded px-2 py-1">Insert Link</span>
+                        </button>
+                        <button className="bgGray cursor-pointer rounded-full w-10 h-10 flex items-center justify-center relative group">
+                            <FaFileAlt className="text-2xl"/>
+                            <span className="absolute bottom-full w-20 mb-1 hidden group-hover:block bg-black text-white text-[0.6em] rounded px-2 py-1">Insert File</span>
+                        </button>
                     </div>
                     <div className="text-[0.6em] flex gap-3 text-white">
                         <button className="hover:scale-95 shadow-[var(--shadow-pink)] bg-[var(--pink)] rounded-full px-3 w-30">Publish</button>

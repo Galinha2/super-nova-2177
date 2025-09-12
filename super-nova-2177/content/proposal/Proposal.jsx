@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import CreatePost from "../create post/CreatePost";
 import ProposalCard from "./content/ProposalCard";
 import InputFields from "../create post/InputFields";
+import CardLoading from "../CardLoading";
 
 function Proposal() {
   const [discard, setDiscard] = useState(true);
@@ -70,7 +71,7 @@ function Proposal() {
       userInitials: "MB",
       time: "11:30 am",
       title: "Watch this video!",
-      video: "https://www.youtube.com/embed/2iK3ccCsI6s",
+      video: "https://www.youtube.com/watch?v=2iK3ccCsI6s&ab_channel=SMTOWN",
       likes: 1,
       dislikes: 4,
       comments: [{ name: "Diana Green", comment: "Interesting video!" }],
@@ -117,6 +118,7 @@ function Proposal() {
 
   return (
     <div className="mb-50 lg:mb-10 flex flex-col items-center m-auto mt-5 lg:mt-50 gap-10 justify-center">
+      <CardLoading />
       {discard ? (
         <CreatePost setDiscard={setDiscard} />
       ) : (

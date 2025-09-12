@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { FaCommentAlt } from "react-icons/fa";
 
-function Comments({onClick}) {
+function Comments({onClick, commentsNum}) {
   const [clicked, setClicked] = useState(null);
 
   return (
@@ -19,7 +19,7 @@ function Comments({onClick}) {
       >
         <FaCommentAlt />
       </button>
-        <p className="h-fit">11</p>
+        <p className="h-fit">{commentsNum}</p>
     </div>
   );
 }

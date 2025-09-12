@@ -24,7 +24,7 @@ function Header() {
     );
 
   return (
-    <div className="z-100 hidden lg:block fixed top-5 left-1/2 transform -translate-x-1/2">
+    <div className="z-300 hidden lg:block fixed top-5 left-1/2 transform -translate-x-1/2">
       <LiquidGlass className="flex items-center justify-center px-4 py-3 rounded-[33px]">
         <ul className="flex items-center justify-center gap-5 rounded-full">
           <li>

@@ -143,3 +143,12 @@ a {
 .blur {
   backdrop-filter: blur(1px);
 }
+
+.bgGrayDark {
+  background-color: var(--gray);
+}
+
+.load {
+  border-radius: 25;
+  background-color: var(--gray);
+}

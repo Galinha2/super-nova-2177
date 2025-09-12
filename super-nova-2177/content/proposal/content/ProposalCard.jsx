@@ -5,6 +5,7 @@ import Comments from "./Comments";
 import BookShare from "./BookShare";
 import DisplayComments from "./DisplayComments";
 import { useState } from "react";
+import Spinner from "@/content/Spinner";
 
 function ProposalCard({
   userName,
@@ -16,12 +17,14 @@ function ProposalCard({
   text,
   likes,
   dislikes,
-  comments = [],
+  comments = []
 }) {
   const [showComments, setShowComments] = useState(false);
+  const [loading, setLoading] = useState(true)
 
   return (
-    <div className="p-4 text-[var(--text-black)] rounded-[25px] bg-white shadow-md w-100 md:w-130 lg:w-150 xl:w-200 flex flex-col items-center gap-4">
+    <div className="p-4 text-[var(--text-black)] rounded-[25px] bg-white shadow-md w-100 md:w-130 lg:w-150 xl:w-200 flex flex-col items-center gap-4"
+    onLoad={() => setLoading(false)}>
       {/* User info */}
       <div className="flex items-center justify-start w-full gap-2">
         {image ? (
@@ -61,7 +64,7 @@ function ProposalCard({
         {/* Action bar */}
         <div className="relative flex justify-between w-full">
           <LikesDeslikes initialLikes={likes} initialDislikes={dislikes} />
-          <Comments
+          <Comments commentsNum={comments.length}
             onClick={() => setShowComments(!showComments)}
             className="mx-auto"
           />
