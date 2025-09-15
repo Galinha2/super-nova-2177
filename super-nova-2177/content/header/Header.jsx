@@ -6,7 +6,7 @@ import { IoMdMenu, IoIosClose } from "react-icons/io";
 import Settings from "./content/Settings";
 import content from "@/assets/content.json";
 
-function Header() {
+function Header({activeBE, setActiveBE}) {
   const [showSettings, setShowSettings] = useState(false);
   const menuItems = Object.values(content.header.titles);
 
@@ -50,7 +50,7 @@ function Header() {
 
       {showSettings && (
   <div className="absolute z-2290 mt-2 right-[-160px] flex justify-end w-full">
-    <Settings />
+    <Settings activeBE={activeBE} setActiveBE={setActiveBE}/>
   </div>
 )}
     </div>

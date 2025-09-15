@@ -5,7 +5,6 @@ import Comments from "./Comments";
 import BookShare from "./BookShare";
 import DisplayComments from "./DisplayComments";
 import { useState } from "react";
-import Spinner from "@/content/Spinner";
 
 function ProposalCard({
   userName,

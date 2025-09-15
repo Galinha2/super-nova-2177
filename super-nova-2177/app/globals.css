@@ -150,5 +150,19 @@ a {
 
 .load {
   border-radius: 25;
-  background-color: var(--gray);
+   background: linear-gradient(270deg, var(--gray), rgb(194, 194, 194));
+  background-size: 600% 600%;
+  animation: gradientShift 1.5s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }

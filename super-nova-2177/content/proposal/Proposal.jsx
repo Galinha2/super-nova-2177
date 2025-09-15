@@ -5,9 +5,12 @@ import ProposalCard from "./content/ProposalCard";
 import InputFields from "../create post/InputFields";
 import CardLoading from "../CardLoading";
 
-function Proposal() {
+function Proposal({}) {
   const [discard, setDiscard] = useState(true);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const inputRef = useRef(null);
+  const [active, setActive] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -15,16 +18,17 @@ function Proposal() {
         setDiscard(true);
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [inputRef]);
 
-  // Posts existentes + post adicional
-  const posts = [
-    {
+  // Simular fetch da API
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const fetchedPosts = [
+        {
       userName: "Sophie Lee",
       userInitials: "SL",
       time: "01:45 pm",
@@ -54,6 +58,7 @@ function Proposal() {
       time: "09:15 am",
       title: "Excited to share this!",
       text: "Just finished my latest project, feeling accomplished!",
+      video: "",
       likes: 3,
       dislikes: 1,
       comments: [
@@ -100,6 +105,7 @@ function Proposal() {
       time: "03:00 pm",
       title: "Random thoughts",
       text: "It's been a productive day. Feeling motivated to continue learning new skills.",
+      video: "",
       likes: 5,
       dislikes: 2,
       comments: [],
@@ -114,11 +120,16 @@ function Proposal() {
       dislikes: 12,
       comments: [{ name: "Liam King", comment: "Great insights!" }],
     },
-  ];
+      ];
+      setPosts(fetchedPosts);
+      setLoading(false);
+    });
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
     <div className="mb-50 lg:mb-10 flex flex-col items-center m-auto mt-5 lg:mt-50 gap-10 justify-center">
-      <CardLoading />
       {discard ? (
         <CreatePost setDiscard={setDiscard} />
       ) : (
@@ -127,20 +138,22 @@ function Proposal() {
         </div>
       )}
 
-      {posts.map((post, index) => (
-        <ProposalCard
-          key={index}
-          userName={post.userName}
-          userInitials={post.userInitials}
-          time={post.time}
-          title={post.title}
-          video={post.video}
-          text={post.text}
-          comments={post.comments}
-          likes={post.likes}
-          dislikes={post.dislikes}
-        />
-      ))}
+      {loading
+        ? Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
+        : posts.map((post, index) => (
+            <ProposalCard
+              key={index}
+              userName={post.userName}
+              userInitials={post.userInitials}
+              time={post.time}
+              title={post.title}
+              video={post.video}
+              text={post.text}
+              comments={post.comments}
+              likes={post.likes}
+              dislikes={post.dislikes}
+            />
+          ))}
     </div>
   );
 }

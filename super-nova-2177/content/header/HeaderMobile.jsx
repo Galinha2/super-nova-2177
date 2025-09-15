@@ -9,7 +9,7 @@ import { LuSlack } from "react-icons/lu";
 import Settings from "./content/Settings";
 import { IoIosClose } from "react-icons/io";
 
-function HeaderMobile() {
+function HeaderMobile({activeBE, setActiveBE}) {
   const [showSettings, setShowSettings] = useState(false); // controla visibilidade do Settings
   const header = Object.values(content.header.mobiletitles);
 
@@ -63,8 +63,8 @@ function HeaderMobile() {
 
       {/* Settings visível apenas se showSettings for true */}
       {showSettings && (
-        <div className="absolute bottom-full mb-2 z-120 w-full flex justify-center">
-          <Settings />
+        <div className="absolute bottom-full left-16 mb-2 z-120 w-full flex justify-center">
+          <Settings setActiveBE={setActiveBE} activeBE={activeBE} />
         </div>
       )}
     </div>
