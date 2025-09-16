@@ -10,6 +10,7 @@ function LikesDeslikes({ initialLikes, initialDislikes}) {
   const [likes, setLikes] = useState(initialLikes);
   const [dislikes, setDislikes] = useState(initialDislikes);
   const [action, setAction] = useState(false);
+  console.log(likes)
   const handleLikeClick = () => {
     if (clicked === "like") {
       setLikes(likes - 1);
@@ -53,7 +54,7 @@ function LikesDeslikes({ initialLikes, initialDislikes}) {
           }`}
         >
           <BiSolidLike />
-          <p className="h-fit">{likes}</p>
+          <p className="h-fit">{likes[0] ?? 0}</p>
         </button>
         <button
           onClick={handleDislikeClick}
@@ -67,7 +68,7 @@ function LikesDeslikes({ initialLikes, initialDislikes}) {
           }`}
         >
           <BiSolidDislike />
-          <p className="h-fit">{dislikes}</p>
+          <p className="h-fit">{dislikes[0] ?? 0}</p>
         </button>
         {action ? (
           <IoIosClose

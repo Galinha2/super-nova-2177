@@ -63,7 +63,7 @@ function HeaderMobile({activeBE, setActiveBE}) {
 
       {/* Settings visível apenas se showSettings for true */}
       {showSettings && (
-        <div className="absolute bottom-full left-16 mb-2 z-120 w-full flex justify-center">
+        <div className="absolute right-0 bottom-full mb-2 z-120 w-full flex justify-center">
           <Settings setActiveBE={setActiveBE} activeBE={activeBE} />
         </div>
       )}

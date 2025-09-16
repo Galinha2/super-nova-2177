@@ -49,7 +49,7 @@ function Header({activeBE, setActiveBE}) {
       </LiquidGlass>
 
       {showSettings && (
-  <div className="absolute z-2290 mt-2 right-[-160px] flex justify-end w-full">
+  <div className="absolute right-0 z-2290 mt-2 flex justify-end w-fit">
     <Settings activeBE={activeBE} setActiveBE={setActiveBE}/>
   </div>
 )}

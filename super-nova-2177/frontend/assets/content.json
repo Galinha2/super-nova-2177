@@ -15,6 +15,17 @@
       "profile": "Profile",
       "aiassistant": "AI Assistant",
       "agents": "Agents & APIs"
+    },
+    "profile": {
+      "profile": "Profile",
+      "species": "Species",
+      "avatar": "Avatar",
+      "name": "Name",
+      "types": {
+        "human": "Human",
+        "company": "Company",
+        "ai": "AI"
+      }
     }
   }
 }
