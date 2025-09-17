@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-export default function Error({ messages }) {
+export default function Notification({ messages }) {
   const [visibleMessages, setVisibleMessages] = useState([]);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function Error({ messages }) {
       {visibleMessages.map((message, index) => (
         <div
           key={index}
-          className="fixed bottom-10 right-10 w-auto h-auto px-5 py-2 bg-red-500 rounded-[20px] flex items-center justify-center text-white text-[1em] font-[900]"
+          className="fixed bottom-10 right-10 w-auto h-auto px-5 py-2 bg-green-500 rounded-[20px] flex items-center justify-center text-white text-[1em] font-[900] mb-2"
           style={{ bottom: `${10 + index * 50}px` }}
         >
           <p>{message}</p>

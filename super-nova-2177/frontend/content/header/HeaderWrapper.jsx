@@ -3,14 +3,14 @@ import Header from "@/content/header/Header";
 import HeaderMobile from "@/content/header/HeaderMobile";
 import { useActiveBE } from "../ActiveBEContext";
 
-export default function HeaderWrapper() {
+export default function HeaderWrapper({setErrorMsg, errorMsg, setNotify}) {
   const { activeBE, setActiveBE } = useActiveBE();
 
   return (
     <>
-      <Header activeBE={activeBE} setActiveBE={setActiveBE} />
+      <Header setNotify={setNotify} errorMsg={errorMsg} setErrorMsg={setErrorMsg} activeBE={activeBE} setActiveBE={setActiveBE} />
       <span id="createPost"></span>
-      <HeaderMobile activeBE={activeBE} setActiveBE={setActiveBE} />
+      <HeaderMobile setNotify={setNotify} errorMsg={errorMsg} setErrorMsg={setErrorMsg} activeBE={activeBE} setActiveBE={setActiveBE} />
     </>
   );
 }

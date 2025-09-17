@@ -1,5 +1,4 @@
 "use client";
-import LiquidGlass from "../../liquid glass/LiquidGlass";
 import LikesDeslikes from "./LikesDeslikes";
 import Comments from "./Comments";
 import BookShare from "./BookShare";
@@ -11,23 +10,37 @@ function ProposalCard({
   userInitials,
   time,
   title,
-  video,
-  image,
   text,
+  media = {},
+  logo,
   likes,
   dislikes,
-  comments = []
+  comments = [],
 }) {
   const [showComments, setShowComments] = useState(false);
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
+
+  const backendUrl = "http://localhost:8000";
+
+  const getFullImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    return backendUrl + url;
+  };
 
   return (
-    <div className="p-4 text-[var(--text-black)] rounded-[25px] bg-white shadow-md w-100 md:w-130 lg:w-150 xl:w-200 flex flex-col items-center gap-4"
-    onLoad={() => setLoading(false)}>
+    <div
+      className="p-4 text-[var(--text-black)] rounded-[25px] bg-white shadow-md w-100 md:w-130 lg:w-150 xl:w-200 flex flex-col items-center gap-4"
+      onLoad={() => setLoading(false)}
+    >
       {/* User info */}
       <div className="flex items-center justify-start w-full gap-2">
-        {image ? (
-          <img src={image} alt="picture" />
+        {logo ? (
+          <img
+            src={getFullImageUrl(logo)}
+            alt="user avatar"
+            className="rounded-full w-10 h-10"
+          />
         ) : (
           <p className="rounded-full bg-[var(--gray)] shadow-sm text-[0.5em] p-2">
             {userInitials}
@@ -40,14 +53,17 @@ function ProposalCard({
 
       {/* Title */}
       <div className="flex w-full gap-3 flex-col">
-        <h1 className="text-[2em]">{title}</h1>
+        <h1 className="text-[1.5em] my-[-15px]">{title}</h1>
 
         {/* Conditional content */}
-        {video && (
+        {media.image && (
+          <img src={getFullImageUrl(media.image)} alt={title} className="w-full rounded-md" />
+        )}
+        {media.video && (
           <div className="w-full aspect-video">
             <iframe
-              src={video}
-              title="YouTube video"
+              src={media.video}
+              title="Video"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -55,15 +71,29 @@ function ProposalCard({
             ></iframe>
           </div>
         )}
+        {media.link && (
+          <a
+            href={media.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline"
+          >
+            {media.link}
+          </a>
+        )}
+        {media.file && (
+          <a href={getFullImageUrl(media.file)} download className="text-green-600 underline">
+            Download file
+          </a>
+        )}
 
-        {image && <img src={image} alt={title} className="w-full rounded-md" />}
-
-        {text && <p className="text-[0.9em]">{text}</p>}
+        {text && <p className="post-text text-[0.9em] w-full">{text}</p>}
 
         {/* Action bar */}
         <div className="relative flex justify-between w-full">
           <LikesDeslikes initialLikes={likes} initialDislikes={dislikes} />
-          <Comments commentsNum={comments.length}
+          <Comments
+            commentsNum={comments.length}
             onClick={() => setShowComments(!showComments)}
             className="mx-auto"
           />

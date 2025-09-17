@@ -5,6 +5,8 @@ import { useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { FaPlus } from "react-icons/fa6";
 import { useUser } from "./UserContext";
+import Notification from "../Notification";
+import Error from "../Error";
 
 const typeIcons = {
   human: <FaUser />,
@@ -12,7 +14,7 @@ const typeIcons = {
   ai: <BsFillCpuFill />,
 };
 
-function Profile() {
+function Profile({errorMsg, setErrorMsg, setNotify}) {
   const { userData, setUserData } = useUser();
   const settings = content.header.profile;
   const [open, setOpen] = useState(userData.species || "");
@@ -20,16 +22,25 @@ function Profile() {
   const [getName, setGetName] = useState(userData.name || "");
 
   function handleUser() {
+    const errors = [];
+    const notify = [];
+    if (!getName) errors.push("Invalid User Name.");
+    if (!open) errors.push("No Specie Selected.");
+    if (open && getName) notify.push("User created successfully!");
+    setErrorMsg([]);
     setUserData({
       species: open,
       avatar: getAvatar,
       name: getName,
     });
-    console.log("Saved user:", {
-      species: open,
-      avatar: getAvatar,
-      name: getName,
-    });
+    if (errors.length > 0) {
+      setErrorMsg(errors);
+      return;
+    }
+    if (notify.length > 0) {
+      setNotify(notify);
+      return;
+    }
   }
 
   function handleAvatarSelect(e) {
@@ -42,6 +53,8 @@ function Profile() {
 
   return (
     <div className="text-[var(--text-black)]">
+      <div className="fixed right-0 bottom-0">
+      </div>
       <h1>{settings.profile}</h1>
       <div className="text-[0.6em] flex flex-col gap-3">
         <div>
@@ -115,7 +128,7 @@ function Profile() {
         </div>
         <button
           onClick={handleUser}
-          className="bg-[var(--blue)] mt-2 text-[0.8em] rounded-full text-white hover:scale-98 w-fit px-2"
+          className="bg-[var(--blue)] shadow-[var(--shadow-blue)] mt-2 text-[0.8em] rounded-full text-white hover:scale-98 w-fit px-2"
         >
           Save
         </button>

@@ -6,7 +6,7 @@ import { IoMdMenu, IoIosClose } from "react-icons/io";
 import Settings from "./content/Settings";
 import content from "@/assets/content.json";
 
-function Header({activeBE, setActiveBE}) {
+function Header({activeBE, setActiveBE, errorMsg, setErrorMsg, setNotify}) {
   const [showSettings, setShowSettings] = useState(false);
   const menuItems = Object.values(content.header.titles);
 
@@ -50,7 +50,7 @@ function Header({activeBE, setActiveBE}) {
 
       {showSettings && (
   <div className="absolute right-0 z-2290 mt-2 flex justify-end w-fit">
-    <Settings activeBE={activeBE} setActiveBE={setActiveBE}/>
+    <Settings setNotify={setNotify} errorMsg={errorMsg} setErrorMsg={setErrorMsg} activeBE={activeBE} setActiveBE={setActiveBE}/>
   </div>
 )}
     </div>

@@ -178,3 +178,11 @@ a {
     background-position: 0% 50%;
   }
 }
+
+button {
+  cursor: pointer;
+}
+
+.post-text {
+  white-space: pre-line;
+}

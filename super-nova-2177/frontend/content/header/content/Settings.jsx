@@ -13,17 +13,17 @@ const iconsMap = {
   agents: <FiLoader />,
 };
 
-const menusMap = {
-  profile: <Profile />,
-  livebe: <FaServer />,
-  aiassistant: <FiSlack />,
-  agents: <FiLoader />,
-};
 
-function Settings({ activeBE, setActiveBE }) {
+function Settings({ errorMsg, setErrorMsg, activeBE, setActiveBE, setNotify }) {
+  const menusMap = {
+    profile: <Profile errorMsg={errorMsg} setErrorMsg={setErrorMsg} setNotify={setNotify} />,
+    livebe: <FaServer />,
+    aiassistant: <FiSlack />,
+    agents: <FiLoader />,
+  };
   const settings = content.header.settings;
   const [open, setOpen] = useState("");
-  console.log(open);
+
   return (
     <LiquidGlass className="rounded-[30px] p-3">
       <div className="flex flex-col items-center justify-center lg:flex-row gap-2">

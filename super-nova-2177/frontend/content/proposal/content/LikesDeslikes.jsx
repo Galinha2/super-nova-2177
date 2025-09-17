@@ -10,7 +10,7 @@ function LikesDeslikes({ initialLikes, initialDislikes}) {
   const [likes, setLikes] = useState(initialLikes);
   const [dislikes, setDislikes] = useState(initialDislikes);
   const [action, setAction] = useState(false);
-  console.log(likes)
+
   const handleLikeClick = () => {
     if (clicked === "like") {
       setLikes(likes - 1);

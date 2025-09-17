@@ -136,21 +136,35 @@ function Proposal({ activeBE, setActiveBE }) {
       )}
 
       {isLoading
-  ? Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
-  : posts?.map((post, index) => (
-      <ProposalCard
-        key={index}
-        userName={post.userName}
-        userInitials={post.userInitials}
-        time={formatRelativeTime(post.time)}
-        title={post.title}
-        video={post.video}
-        text={post.text}
-        comments={post.comments}
-        likes={post.likes}
-        dislikes={post.dislikes}
-      />
-    ))}
+        ? Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
+        : posts?.map((post, index) => (
+            <ProposalCard
+              key={index}
+              userName={post.userName}
+              userInitials={post.userInitials}
+              time={formatRelativeTime(post.time)}
+              title={post.title}
+              logo={post.author_img}
+              media={{
+                image: post.media?.image
+                  ? `http://localhost:8000${post.media.image}`
+                  : post.image
+                  ? `http://localhost:8000${post.image}`
+                  : "",
+                video: post.media?.video || post.video || "",
+                link: post.media?.link || post.link || "",
+                file: post.media?.file
+                  ? `http://localhost:8000${post.media.file}`
+                  : post.file
+                  ? `http://localhost:8000${post.file}`
+                  : "",
+              }}
+              text={post.text}
+              comments={post.comments}
+              likes={post.likes}
+              dislikes={post.dislikes}
+            />
+          ))}
     </div>
   );
 }
