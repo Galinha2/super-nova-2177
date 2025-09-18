@@ -27,5 +27,15 @@
         "ai": "AI"
       }
     }
+  },
+  "filters": {
+    "latest": "Latest",
+    "oldest": "Oldest",
+    "all": "All",
+    "topLikes": "Top Liked",
+    "fewestLikes": "Less Liked",
+    "ai": "AI",
+    "company": "Company",
+    "human": "Human"
   }
 }

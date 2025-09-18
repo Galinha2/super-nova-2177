@@ -24,8 +24,8 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
   function handleUser() {
     const errors = [];
     const notify = [];
-    if (!getName) errors.push("Invalid User Name.");
-    if (!open) errors.push("No Specie Selected.");
+    if (!getName) errors.push("Invalid user name.");
+    if (!open) errors.push("No species selected.");
     if (open && getName) notify.push("User created successfully!");
     setErrorMsg([]);
     setUserData({

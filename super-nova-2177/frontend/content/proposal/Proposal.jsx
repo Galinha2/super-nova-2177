@@ -5,6 +5,7 @@ import ProposalCard from "./content/ProposalCard";
 import InputFields from "../create post/InputFields";
 import CardLoading from "../CardLoading";
 import { useQuery } from "@tanstack/react-query";
+import FilterHeader from "../filters/FilterHeader";
 
 function formatRelativeTime(dateString) {
   if (!dateString) return "now";
@@ -29,7 +30,8 @@ function formatRelativeTime(dateString) {
   return "now";
 }
 
-function Proposal({ activeBE, setActiveBE }) {
+function Proposal({ activeBE, setErrorMsg, setNotify }) {
+
   const [discard, setDiscard] = useState(true);
   const [loading, setLoading] = useState(true);
   const inputRef = useRef(null);
@@ -50,20 +52,20 @@ function Proposal({ activeBE, setActiveBE }) {
             date: new Date(Date.now() - 45 * 60000).toISOString(), // 45 minutes ago
             title: "Check this out",
             video: "https://www.youtube.com/embed/ZeerrnuLi5E",
-            likes: 11,
-            dislikes: 2,
+            likes: [1, 1,1,1,1],
+            dislikes: [2],
             comments: [
               {
-                image:
+                user_img:
                   "https://t4.ftcdn.net/jpg/03/96/16/79/360_F_396167959_aAhZiGlJoeXOBHivMvaO0Aloxvhg3eVT.jpg",
-                name: "Ethan Black",
+                user: "Ethan Black",
                 comment: "Nice find!",
               },
-              { name: "Fiona Gray", comment: "Thanks for sharing!" },
+              { user: "Fiona Gray", comment: "Thanks for sharing!" },
               {
-                image:
+                user_img:
                   "https://blog.stocksnap.io/content/images/2022/02/smiling-woman_W6GFOSFAXA.jpg",
-                name: "Gray May",
+                user: "Gray May",
                 comment:
                   "Thanks for sharing! for sharing! for sharing! for sharing!",
               },
@@ -76,14 +78,14 @@ function Proposal({ activeBE, setActiveBE }) {
             title: "Excited to share this!",
             text: "Just finished my latest project, feeling accomplished!",
             video: "",
-            likes: 3,
-            dislikes: 1,
+            likes: [23,23,23,],
+            dislikes: [1],
             comments: [
-              { name: "Bob Smith", comment: "Amazing work!" },
+              { user: "Bob Smith", comment: "Amazing work!" },
               {
-                image:
+                user_img:
                   "https://img.freepik.com/free-photo/lifestyle-people-emotions-casual-concept-confident-nice-smiling-asian-woman-cross-arms-chest-confident-ready-help-listening-coworkers-taking-part-conversation_1258-59335.jpg",
-                name: "Clara White",
+                user: "Clara White",
                 comment: "Congrats!",
               },
             ],
@@ -95,9 +97,9 @@ function Proposal({ activeBE, setActiveBE }) {
             title: "Watch this video!",
             video:
               "https://www.youtube.com/watch?v=2iK3ccCsI6s&ab_channel=SMTOWN",
-            likes: 1,
-            dislikes: 4,
-            comments: [{ name: "Diana Green", comment: "Interesting video!" }],
+            likes: [1],
+            dislikes: [1,3,4,2],
+            comments: [{ user: "Diana Green", comment: "Interesting video!" }],
           },
           {
             userName: "Tom Harris",
@@ -106,8 +108,8 @@ function Proposal({ activeBE, setActiveBE }) {
             title: "Random thoughts",
             text: "It's been a productive day. Feeling motivated to continue learning new skills.",
             video: "",
-            likes: 5,
-            dislikes: 2,
+            likes: [2,3,2],
+            dislikes: [2,3,2,3],
             comments: [],
           },
           {
@@ -116,9 +118,9 @@ function Proposal({ activeBE, setActiveBE }) {
             date: new Date(Date.now() - 45 * 86400000).toISOString(), // 45 days ago
             title: "Another random post",
             text: "Sharing some thoughts on productivity and workflow optimization.",
-            likes: 4,
-            dislikes: 12,
-            comments: [{ name: "Liam King", comment: "Great insights!" }],
+            likes: [3,3,4],
+            dislikes: [],
+            comments: [{ user: "Liam King", comment: "Great insights!" }],
           },
         ];
       }
@@ -126,7 +128,7 @@ function Proposal({ activeBE, setActiveBE }) {
   });
 
   return (
-    <div className="mb-50 lg:mb-10 flex flex-col items-center m-auto mt-5 lg:mt-50 gap-10 justify-center">
+    <div className="mb-50 lg:mb-10 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto mt-5 lg:mt-50 gap-10 justify-center relative">
       {discard ? (
         <CreatePost setDiscard={setDiscard} />
       ) : (
@@ -135,10 +137,13 @@ function Proposal({ activeBE, setActiveBE }) {
         </div>
       )}
 
-      {isLoading
-        ? Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
-        : posts?.map((post, index) => (
+      <div className="flex lg:flex-col gap-10 flex-col">
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
+        ) : posts && posts.length > 0 ? (
+          posts.map((post, index) => (
             <ProposalCard
+              id={post.id}
               key={index}
               userName={post.userName}
               userInitials={post.userInitials}
@@ -163,8 +168,15 @@ function Proposal({ activeBE, setActiveBE }) {
               comments={post.comments}
               likes={post.likes}
               dislikes={post.dislikes}
+              setErrorMsg={setErrorMsg}
+              setNotify={setNotify}
             />
-          ))}
+          ))
+        ) : (
+          <p className="text-center text-gray-500">No Proposals found.</p>
+        )}
+      </div>
+      <FilterHeader />
     </div>
   );
 }

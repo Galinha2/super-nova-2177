@@ -37,7 +37,7 @@ export default function Error({ messages }) {
       {visibleMessages.map((message, index) => (
         <div
           key={index}
-          className="fixed bottom-10 right-10 w-auto h-auto px-5 py-2 bg-red-500 rounded-[20px] flex items-center justify-center text-white text-[1em] font-[900]"
+          className="fixed z-9999 bottom-10 right-10 w-auto h-auto px-5 py-2 bg-red-500 rounded-[20px] flex items-center justify-center text-white text-[1em] font-[900]"
           style={{ bottom: `${10 + index * 50}px` }}
         >
           <p>{message}</p>

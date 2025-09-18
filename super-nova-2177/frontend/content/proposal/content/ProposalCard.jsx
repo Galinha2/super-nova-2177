@@ -4,8 +4,12 @@ import Comments from "./Comments";
 import BookShare from "./BookShare";
 import DisplayComments from "./DisplayComments";
 import { useState } from "react";
+import { FaFileAlt } from "react-icons/fa";
+import { useUser } from "@/content/profile/UserContext";
+import InsertComment from "./InsertComment";
 
 function ProposalCard({
+  id,
   userName,
   userInitials,
   time,
@@ -16,12 +20,16 @@ function ProposalCard({
   likes,
   dislikes,
   comments = [],
+  setErrorMsg,
+  setNotify
 }) {
+  
   const [showComments, setShowComments] = useState(false);
   const [loading, setLoading] = useState(true);
-
+  const [localComments, setLocalComments] = useState(comments);
+  const { userData } = useUser();
   const backendUrl = "http://localhost:8000";
-
+  console.log("username:", userData)
   const getFullImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
@@ -39,12 +47,14 @@ function ProposalCard({
           <img
             src={getFullImageUrl(logo)}
             alt="user avatar"
-            className="rounded-full w-10 h-10"
+            className="rounded-full w-8 h-8"
           />
         ) : (
-          <p className="rounded-full bg-[var(--gray)] shadow-sm text-[0.5em] p-2">
-            {userInitials}
-          </p>
+          <div className="rounded-full bg-[var(--gray)] shadow-sm p-2 w-8 h-8 flex items-center justify-center">
+            <p className="text-[0.8em]">
+              {userInitials}
+            </p>
+          </div>
         )}
         <p>{userName}</p>
         <p>-</p>
@@ -71,6 +81,8 @@ function ProposalCard({
             ></iframe>
           </div>
         )}
+
+        {text && <p className="post-text text-[0.9em] w-full">{text}</p>}
         {media.link && (
           <a
             href={media.link}
@@ -82,18 +94,19 @@ function ProposalCard({
           </a>
         )}
         {media.file && (
-          <a href={getFullImageUrl(media.file)} download className="text-green-600 underline">
-            Download file
+          <a href={getFullImageUrl(media.file)} download className="cursor-pointer flex items-center bg-[var(--blue)] text-white shadow-[var(--shadow-blue)] w-fit px-2 py-2 rounded-full" >
+            <FaFileAlt className="text-[2em]" />
+
+            <p className="">
+              Download file
+            </p>
           </a>
         )}
-
-        {text && <p className="post-text text-[0.9em] w-full">{text}</p>}
-
         {/* Action bar */}
         <div className="relative flex justify-between w-full">
-          <LikesDeslikes initialLikes={likes} initialDislikes={dislikes} />
+          <LikesDeslikes setErrorMsg={setErrorMsg} initialLikes={likes.length} initialDislikes={dislikes.length} proposalId={id} />
           <Comments
-            commentsNum={comments.length}
+            commentsNum={localComments.length}
             onClick={() => setShowComments(!showComments)}
             className="mx-auto"
           />
@@ -103,25 +116,13 @@ function ProposalCard({
         {/* Comments section */}
         {showComments && (
           <div className="flex flex-col gap-2 rounded-[15px] p-2">
-            <div className="flex gap-2 items-center justify-start mb-5">
-              <p className="rounded-full bg-[var(--gray)] shadow-sm h-10 w-10 p-2">
-                {userInitials}
-              </p>
-              <input
-                type="text"
-                placeholder="Insert Comment"
-                className="bg-[var(--gray)] rounded-full shadow-sm px-4 py-0 h-10 w-full"
-              />
-              <button className="bg-[var(--pink)] text-white px-3 rounded-full h-10 shadow-sm hover:scale-95 cursor-pointer">
-                Publish
-              </button>
-            </div>
+            <InsertComment setErrorMsg={setErrorMsg} setNotify={setNotify} proposalId={id} setLocalComments={setLocalComments} />
 
-            {comments.map((c, i) => (
+            {localComments.map((c, i) => (
               <DisplayComments
                 key={i}
-                name={c.name}
-                image={c.image}
+                name={c.user}
+                image={c.user_img}
                 comment={c.comment}
               />
             ))}

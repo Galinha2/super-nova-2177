@@ -8,13 +8,23 @@ function DisplayComments({ comment, name, image }) {
     return (firstInitial + lastInitial).toUpperCase();
   };
 
+  const isValidImage = (url) => {
+    if (!url) return false;
+    return /\.(jpeg|jpg|png)$/i.test(url.trim());
+  };
+
   const initials = getInitials(name);
 
   return (
     <div className="flex gap-2 items-start justify-start max-w-120">
       {/* Bolinha com iniciais ou imagem */}
-      {image ? (
-        <img src={image} alt={name} className="rounded-full shadow-sm p-0 w-[2.3em] h-[2.3em] object-cover" />
+      {isValidImage(image) ? (
+        <img 
+          src={image} 
+          alt={name} 
+          className="rounded-full shadow-sm p-0 w-[2.3em] h-[2.3em] object-cover" 
+          onError={(e) => { e.target.onerror = null; e.target.src = "/default-avatar.png"; }}
+        />
       ) : (
         <p className="rounded-full bg-[var(--gray)] shadow-sm p-2">{initials}</p>
       )}
