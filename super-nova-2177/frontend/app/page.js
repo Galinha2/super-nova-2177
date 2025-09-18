@@ -1,7 +1,7 @@
 "use client";
-import ProposalWrapper from "@/content/proposal/ProposalWrapper";
+import Proposal from "@/content/proposal/Proposal";
 
 export default function Page() {
-  return
-  <ProposalWrapper />
+  return <Proposal />
+  
 }

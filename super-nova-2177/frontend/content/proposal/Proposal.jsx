@@ -129,52 +129,53 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
 
   return (
     <div className="mb-50 lg:mb-10 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto mt-5 lg:mt-50 gap-10 justify-center relative">
-      {discard ? (
-        <CreatePost setDiscard={setDiscard} />
-      ) : (
-        <div ref={inputRef}>
-          <InputFields setDiscard={setDiscard} />
-        </div>
-      )}
-
-      <div className="flex lg:flex-col gap-10 flex-col">
-        {isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
-        ) : posts && posts.length > 0 ? (
-          posts.map((post, index) => (
-            <ProposalCard
-              id={post.id}
-              key={index}
-              userName={post.userName}
-              userInitials={post.userInitials}
-              time={formatRelativeTime(post.time)}
-              title={post.title}
-              logo={post.author_img}
-              media={{
-                image: post.media?.image
-                  ? `http://localhost:8000${post.media.image}`
-                  : post.image
-                  ? `http://localhost:8000${post.image}`
-                  : "",
-                video: post.media?.video || post.video || "",
-                link: post.media?.link || post.link || "",
-                file: post.media?.file
-                  ? `http://localhost:8000${post.media.file}`
-                  : post.file
-                  ? `http://localhost:8000${post.file}`
-                  : "",
-              }}
-              text={post.text}
-              comments={post.comments}
-              likes={post.likes}
-              dislikes={post.dislikes}
-              setErrorMsg={setErrorMsg}
-              setNotify={setNotify}
-            />
-          ))
+      <div className="flex flex-col gap-10">
+        {discard ? (
+          <CreatePost setDiscard={setDiscard} />
         ) : (
-          <p className="text-center text-gray-500">No Proposals found.</p>
+          <div ref={inputRef}>
+            <InputFields setDiscard={setDiscard} />
+          </div>
         )}
+        <div className="flex lg:flex-col gap-10 flex-col">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
+          ) : posts && posts.length > 0 ? (
+            posts.map((post, index) => (
+              <ProposalCard
+                id={post.id}
+                key={index}
+                userName={post.userName}
+                userInitials={post.userInitials}
+                time={formatRelativeTime(post.time)}
+                title={post.title}
+                logo={post.author_img}
+                media={{
+                  image: post.media?.image
+                    ? `http://localhost:8000${post.media.image}`
+                    : post.image
+                    ? `http://localhost:8000${post.image}`
+                    : "",
+                  video: post.media?.video || post.video || "",
+                  link: post.media?.link || post.link || "",
+                  file: post.media?.file
+                    ? `http://localhost:8000${post.media.file}`
+                    : post.file
+                    ? `http://localhost:8000${post.file}`
+                    : "",
+                }}
+                text={post.text}
+                comments={post.comments}
+                likes={post.likes}
+                dislikes={post.dislikes}
+                setErrorMsg={setErrorMsg}
+                setNotify={setNotify}
+              />
+            ))
+          ) : (
+            <p className="text-center text-gray-500">No Proposals found.</p>
+          )}
+      </div>
       </div>
       <FilterHeader />
     </div>
