@@ -2,7 +2,12 @@
 import { useState } from "react";
 import { useUser } from "@/content/profile/UserContext";
 
-function InsertComment({ proposalId, setNotify, setErrorMsg, setLocalComments }) {
+function InsertComment({
+  proposalId,
+  setNotify = () => {},
+  setErrorMsg = () => {},
+  setLocalComments = () => {},
+}) {
   const { userData, defaultAvatar } = useUser();
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +35,7 @@ function InsertComment({ proposalId, setNotify, setErrorMsg, setLocalComments })
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/comments", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -49,10 +54,8 @@ function InsertComment({ proposalId, setNotify, setErrorMsg, setLocalComments })
         return;
       }
 
-
       setNotify(["Comment Submitted"]);
       setComment("");
-
 
       const newComment = {
         proposal_id: Number(proposalId),
@@ -72,12 +75,12 @@ function InsertComment({ proposalId, setNotify, setErrorMsg, setLocalComments })
 
   return (
     <div className="flex gap-2 items-center justify-start mb-5">
-      <div className="rounded-full bg-[var(--gray)] shadow-sm h-10 w-10 p-2 flex items-center justify-center overflow-hidden">
+      <div className="rounded-full bg-[var(--gray)] shadow-sm h-10 w-14 flex items-center justify-center overflow-hidden">
         {userData.avatar && isValidImage(userData.avatar) && !imgError ? (
           <img
             src={userData.avatar}
             alt={userData.name}
-            className="h-full w-full object-cover rounded-full"
+            className="h-10 w-10 object-cover rounded-full"
             onError={() => setImgError(true)}
           />
         ) : (

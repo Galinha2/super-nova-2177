@@ -7,7 +7,6 @@ import { useState } from "react";
 import { FaFileAlt } from "react-icons/fa";
 import { useUser } from "@/content/profile/UserContext";
 import InsertComment from "./InsertComment";
-import Loading from "@/app/loading";
 
 function ProposalCard({
   id,
@@ -61,7 +60,7 @@ function ProposalCard({
           <img
             src={getFullImageUrl(logo)}
             alt="user avatar"
-            className="rounded-full w-8 h-8"
+            className="rounded-full shadow-md w-8 h-8"
           />
         ) : (
           <div className="rounded-full bg-[var(--gray)] shadow-sm p-2 w-8 h-8 flex items-center justify-center">
