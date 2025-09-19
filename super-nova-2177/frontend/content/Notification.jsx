@@ -6,9 +6,11 @@ export default function Notification({ messages }) {
 
   useEffect(() => {
     if (messages && messages.length > 0) {
-      setVisibleMessages(prevMessages => {
+      setVisibleMessages((prevMessages) => {
         // Adiciona novas mensagens que ainda não estão visíveis
-        const newMessages = messages.filter(msg => !prevMessages.includes(msg));
+        const newMessages = messages.filter(
+          (msg) => !prevMessages.includes(msg)
+        );
         return [...prevMessages, ...newMessages];
       });
     }
@@ -33,16 +35,16 @@ export default function Notification({ messages }) {
   if (!visibleMessages || visibleMessages.length === 0) return null;
 
   return (
-    <>
+    <div className="fixed top-2 lg:top-auto lg:bottom-10 right-1 lg:right-10 flex flex-col items-end gap-2 z-9999">
       {visibleMessages.map((message, index) => (
         <div
           key={index}
-          className="z-9999 fixed bottom-10 right-10 w-auto h-auto px-5 py-2 bg-green-500 rounded-[20px] flex items-center justify-center text-white text-[1em] font-[900] mb-2"
-          style={{ bottom: `${10 + index * 50}px` }}
+          className="w-auto h-13 px-5 py-2 bg-green-500 rounded-[20px] flex items-center justify-center text-white text-[1em] font-[900]"
         >
           <p>{message}</p>
         </div>
       ))}
-    </>
+    </div>
   );
+  lg: bottom - 5;
 }

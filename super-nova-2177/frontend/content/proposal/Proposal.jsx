@@ -31,16 +31,29 @@ function formatRelativeTime(dateString) {
 }
 
 function Proposal({ activeBE, setErrorMsg, setNotify }) {
-
   const [discard, setDiscard] = useState(true);
-  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("All");
   const inputRef = useRef(null);
 
   const { data: posts, isLoading } = useQuery({
-    queryKey: ["posts", activeBE],
+    queryKey: ["posts", activeBE, filter],
     queryFn: async () => {
       if (!activeBE) {
-        const res = await fetch("http://localhost:8000/proposals");
+        const filterMap = {
+          All: "all",
+          Latest: "latest",
+          Oldest: "oldest",
+          "Top Liked": "topLikes",
+          "Less Liked": "fewestLikes",
+          Popular: "popular",
+          AI: "ai",
+          Company: "company",
+          Human: "human",
+        };
+        const filterParam = filterMap[filter];
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        const res = await fetch(`${apiUrl}/proposals?filter=${filterParam}`);
+
         if (!res.ok) throw new Error("Failed to fetch posts");
         return res.json();
       } else {
@@ -52,7 +65,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
             date: new Date(Date.now() - 45 * 60000).toISOString(), // 45 minutes ago
             title: "Check this out",
             video: "https://www.youtube.com/embed/ZeerrnuLi5E",
-            likes: [1, 1,1,1,1],
+            likes: [1, 1, 1, 1, 1],
             dislikes: [2],
             comments: [
               {
@@ -78,7 +91,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
             title: "Excited to share this!",
             text: "Just finished my latest project, feeling accomplished!",
             video: "",
-            likes: [23,23,23,],
+            likes: [23, 23, 23],
             dislikes: [1],
             comments: [
               { user: "Bob Smith", comment: "Amazing work!" },
@@ -98,7 +111,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
             video:
               "https://www.youtube.com/watch?v=2iK3ccCsI6s&ab_channel=SMTOWN",
             likes: [1],
-            dislikes: [1,3,4,2],
+            dislikes: [1, 3, 4, 2],
             comments: [{ user: "Diana Green", comment: "Interesting video!" }],
           },
           {
@@ -108,8 +121,8 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
             title: "Random thoughts",
             text: "It's been a productive day. Feeling motivated to continue learning new skills.",
             video: "",
-            likes: [2,3,2],
-            dislikes: [2,3,2,3],
+            likes: [2, 3, 2],
+            dislikes: [2, 3, 2, 3],
             comments: [],
           },
           {
@@ -118,7 +131,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
             date: new Date(Date.now() - 45 * 86400000).toISOString(), // 45 days ago
             title: "Another random post",
             text: "Sharing some thoughts on productivity and workflow optimization.",
-            likes: [3,3,4],
+            likes: [3, 3, 4],
             dislikes: [],
             comments: [{ user: "Liam King", comment: "Great insights!" }],
           },
@@ -152,16 +165,16 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
                 logo={post.author_img}
                 media={{
                   image: post.media?.image
-                    ? `http://localhost:8000${post.media.image}`
+                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.image}`
                     : post.image
-                    ? `http://localhost:8000${post.image}`
+                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.image}`
                     : "",
                   video: post.media?.video || post.video || "",
                   link: post.media?.link || post.link || "",
                   file: post.media?.file
-                    ? `http://localhost:8000${post.media.file}`
+                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.file}`
                     : post.file
-                    ? `http://localhost:8000${post.file}`
+                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.file}`
                     : "",
                 }}
                 text={post.text}
@@ -175,9 +188,9 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           ) : (
             <p className="text-center text-gray-500">No Proposals found.</p>
           )}
+        </div>
       </div>
-      </div>
-      <FilterHeader />
+      <FilterHeader filter={filter} setFilter={setFilter} />
     </div>
   );
 }

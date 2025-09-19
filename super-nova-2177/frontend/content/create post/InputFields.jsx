@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import imageCompression from "browser-image-compression";
 import LiquidGlass from "../liquid glass/LiquidGlass";
 import { FaImage, FaVideo } from "react-icons/fa6";
 import { FaLink, FaFileAlt } from "react-icons/fa";
@@ -26,6 +27,7 @@ function InputFields({ setDiscard }) {
       formData.append("title", newPost.title || "");
       formData.append("body", newPost.body || "");
       formData.append("author", newPost.author || "");
+      formData.append("author_type", newPost.author_type || "");
       formData.append("author_img", newPost.author_img || "");
       formData.append("date", newPost.date || "");
       formData.append("video", newPost.video || "");
@@ -38,7 +40,8 @@ function InputFields({ setDiscard }) {
         }
       }
 
-      const response = await fetch("http://localhost:8000/proposals", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiUrl}/proposals`, {
         method: "POST",
         body: formData,
       });
@@ -51,7 +54,8 @@ function InputFields({ setDiscard }) {
   const uploadMediaFile = async (file, type) => {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await fetch(`http://localhost:8000/upload-${type}`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const response = await fetch(`${apiUrl}/upload-${type}`, {
       method: "POST",
       body: formData,
     });
@@ -67,17 +71,52 @@ function InputFields({ setDiscard }) {
     setSelectedFile("");
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const fileObj = e.target.files && e.target.files[0];
     if (!fileObj) return;
-    setSelectedFile(fileObj);
-    setMediaType("image");
-    setMediaValue(fileObj.name);
+
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1024,
+      useWebWorker: true,
+    };
+
+    try {
+      const compressedFile = await imageCompression(fileObj, options);
+      setSelectedFile(compressedFile);
+      setMediaType("image");
+      setMediaValue(compressedFile.name);
+    } catch (error) {
+      console.error("Image compression error:", error);
+      setSelectedFile(fileObj);
+      setMediaType("image");
+      setMediaValue(fileObj.name);
+    }
   };
 
-  const handleFileInputChange = (e) => {
+  const handleFileInputChange = async (e) => {
     const fileObj = e.target.files && e.target.files[0];
     if (!fileObj) return;
+
+    // Se for imagem, tenta comprimir
+    if (fileObj.type.startsWith("image/")) {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+      };
+      try {
+        const compressedFile = await imageCompression(fileObj, options);
+        setSelectedFile(compressedFile);
+        setMediaType("file");
+        setMediaValue(compressedFile.name);
+        return;
+      } catch (error) {
+        console.error("Image compression error (file upload):", error);
+      }
+    }
+
+    // Se não for imagem ou falhar compressão, mantém original
     setSelectedFile(fileObj);
     setMediaType("file");
     setMediaValue(fileObj.name);
@@ -178,59 +217,52 @@ function InputFields({ setDiscard }) {
                 const errors = [];
                 if (!title) errors.push("No post Title found.");
                 if (!text && !mediaValue) errors.push("No post Media found.");
-                if (!userData.name)
-                  errors.push(
-                    "Enter username in profile settings before publishing."
-                  );
-                if (!userData.species)
-                  errors.push(
-                    "Enter your species in profile settings before publishing."
-                  );
+                if (!userData.name) errors.push("Enter username in profile settings before publishing.");
+                if (!userData.species) errors.push("Enter your species in profile settings before publishing.");
                 if (errors.length > 0) {
-                  setErrorMsg(errors);
-                  return;
+                    setErrorMsg(errors);
+                    return;
                 }
                 setErrorMsg([]);
 
+                // Captura cópias locais do estado
+                const currentSelectedFile = selectedFile;
+                const currentMediaType = mediaType;
+                const currentMediaValue = mediaValue;
+
+                // Faz upload e obtém URL final do backend
                 let uploadedMediaUrl = "";
-                try {
-                  if (
-                    (mediaType === "image" || mediaType === "file") &&
-                    selectedFile
-                  ) {
-                    const typeKey = mediaType === "image" ? "image" : "file";
-                    uploadedMediaUrl = await uploadMediaFile(
-                      selectedFile,
-                      typeKey
-                    );
-                  }
-                } catch (uploadError) {
-                  setErrorMsg([`Failed to upload ${mediaType} file.`]);
-                  return;
+                if ((currentMediaType === "image" || currentMediaType === "file") && currentSelectedFile) {
+                    try {
+                        const typeKey = currentMediaType === "image" ? "image" : "file";
+                        const uploadedData = await uploadMediaFile(currentSelectedFile, typeKey);
+                        uploadedMediaUrl = uploadedData.url || uploadedData.filename || "";
+                    } catch (uploadError) {
+                        setErrorMsg([`Failed to upload ${currentMediaType} file.`]);
+                        return;
+                    }
                 }
 
+                // Cria o post usando a URL definitiva
                 const newPost = {
-                  title,
-                  body: text,
-                  author: userData.name,
-                  author_img: userData.avatar,
-                  date: new Date().toISOString(),
-                  mediaType,
-                  selectedFile: uploadedMediaUrl,
-                  image:
-                    mediaType === "image"
-                      ? uploadedMediaUrl || mediaValue || inputValue
-                      : "",
-                  video:
-                    mediaType === "video" ? mediaValue || inputValue : "",
-                  link: mediaType === "link" ? mediaValue || inputValue : "",
-                  file:
-                    mediaType === "file"
-                      ? uploadedMediaUrl || mediaValue || inputValue
-                      : "",
+                    title,
+                    body: text,
+                    author: userData.name,
+                    author_type: userData.species,
+                    author_img: userData.avatar,
+                    date: new Date().toISOString(),
+                    image: currentMediaType === "image" ? uploadedMediaUrl : "",
+                    file: currentMediaType === "file" ? uploadedMediaUrl : "",
+                    video: currentMediaType === "video" ? currentMediaValue : "",
+                    link: currentMediaType === "link" ? currentMediaValue : "",
                 };
+
+                // Chama a mutation para criar o post
                 mutation.mutate(newPost);
                 setDiscard(true);
+
+                // Limpa estado da media
+                handleRemoveMedia();
               }}
             >
               Publish
