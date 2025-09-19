@@ -100,7 +100,7 @@ function LikesDeslikes({
       setClicked("dislike");
     }
   };
-console.log(likes)
+
   return (
     <>
       <div className="flex text-[var(--text-black)] bg-[var(--gray)] shadow-md w-fit gap-2 rounded-full px-1 py-1 items-center justify-between">

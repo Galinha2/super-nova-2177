@@ -1,34 +1,53 @@
+# Docker Compose configuration for development with hot reload
+
+version: "3.9"
+
 services:
   db:
     image: postgres:15
+    container_name: supernova_db
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example
       POSTGRES_DB: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - default
 
   backend:
     build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://postgres:example@db:5432/postgres
+    container_name: supernova_backend
+    restart: always
     depends_on:
       - db
+    environment:
+      DATABASE_URL: postgresql://postgres:example@db:5432/postgres
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    networks:
+      - default
 
   frontend:
     build: ./frontend
+    container_name: supernova_frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    command: npm run dev
-    depends_on:
-      - backend
+    networks:
+      - default
 
 volumes:
-  postgres_data:
+  db_data:

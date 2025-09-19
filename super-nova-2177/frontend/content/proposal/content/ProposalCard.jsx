@@ -22,7 +22,7 @@ function ProposalCard({
   dislikes,
   comments = [],
   setErrorMsg,
-  setNotify
+  setNotify,
 }) {
   const [showComments, setShowComments] = useState(false);
   const [localComments, setLocalComments] = useState(comments);
@@ -35,7 +35,7 @@ function ProposalCard({
   const getFullImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
-    return backendUrl + url;
+    return process.env.NEXT_PUBLIC_API_URL + url;
   };
 
   const getEmbedUrl = (url) => {
@@ -78,12 +78,18 @@ function ProposalCard({
 
         {media.image && (
           <>
-            {!imageLoaded && <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full"><img src="./spinner.svg" alt="loading" /></div>}
+            {!imageLoaded && (
+              <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full">
+                <img src="./spinner.svg" alt="loading" />
+              </div>
+            )}
             <div className="rounded-md shadow-sm max-h-150 w-full items-center justify-center flex bg-[var(--gray)]">
               <img
                 src={getFullImageUrl(media.image)}
                 alt={title}
-                className={`rounded-md shadow-sm max-h-150 w-fit ${imageLoaded ? "" : "hidden"}`}
+                className={`rounded-md shadow-sm max-h-150 w-fit ${
+                  imageLoaded ? "" : "hidden"
+                }`}
                 onLoad={() => setImageLoaded(true)}
               />
             </div>
@@ -92,7 +98,16 @@ function ProposalCard({
 
         {media.video && (
           <>
-            <div className={`${videoLoaded ? "" : "hidden"} w-full aspect-video`}>
+            {!videoLoaded && (
+              <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full">
+                <img src="./spinner.svg" alt="loading" />
+              </div>
+            )}
+            <div
+              className={`rounded-md shadow-sm w-full bg-[var(--gray)] ${
+                videoLoaded ? "" : "hidden"
+              } aspect-video`}
+            >
               <iframe
                 src={getEmbedUrl(media.video)}
                 title="Video"
@@ -129,16 +144,35 @@ function ProposalCard({
         )}
 
         <div className="relative flex justify-between w-full">
-          <LikesDeslikes setErrorMsg={setErrorMsg} initialLikes={likes.length} initialDislikes={dislikes.length} proposalId={id} />
-          <Comments commentsNum={localComments.length} onClick={() => setShowComments(!showComments)} className="mx-auto" />
+          <LikesDeslikes
+            setErrorMsg={setErrorMsg}
+            initialLikes={likes.length}
+            initialDislikes={dislikes.length}
+            proposalId={id}
+          />
+          <Comments
+            commentsNum={localComments.length}
+            onClick={() => setShowComments(!showComments)}
+            className="mx-auto"
+          />
           <BookShare />
         </div>
 
         {showComments && (
           <div className="flex flex-col gap-2 rounded-[15px] p-2">
-            <InsertComment setErrorMsg={setErrorMsg} setNotify={setNotify} proposalId={id} setLocalComments={setLocalComments} />
+            <InsertComment
+              setErrorMsg={setErrorMsg}
+              setNotify={setNotify}
+              proposalId={id}
+              setLocalComments={setLocalComments}
+            />
             {localComments.map((c, i) => (
-              <DisplayComments key={i} name={c.user} image={c.user_img} comment={c.comment} />
+              <DisplayComments
+                key={i}
+                name={c.user}
+                image={c.user_img}
+                comment={c.comment}
+              />
             ))}
           </div>
         )}

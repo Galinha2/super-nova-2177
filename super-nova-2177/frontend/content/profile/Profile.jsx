@@ -43,13 +43,26 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
     }
   }
 
-  function handleAvatarSelect(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setGetAvatar(imageUrl);
-    }
+  async function handleAvatarSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const res = await fetch(`${apiUrl}/upload-image`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error("Failed to upload avatar");
+    const data = await res.json();
+    
+    setGetAvatar(`${process.env.NEXT_PUBLIC_API_URL}${data.url}`);
+  } catch (err) {
+    console.error("Avatar upload failed:", err);
   }
+}
 
   return (
     <div className="text-[var(--text-black)]">

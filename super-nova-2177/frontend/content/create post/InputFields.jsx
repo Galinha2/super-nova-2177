@@ -217,11 +217,17 @@ function InputFields({ setDiscard }) {
                 const errors = [];
                 if (!title) errors.push("No post Title found.");
                 if (!text && !mediaValue) errors.push("No post Media found.");
-                if (!userData.name) errors.push("Enter username in profile settings before publishing.");
-                if (!userData.species) errors.push("Enter your species in profile settings before publishing.");
+                if (!userData.name)
+                  errors.push(
+                    "Enter username in profile settings before publishing."
+                  );
+                if (!userData.species)
+                  errors.push(
+                    "Enter your species in profile settings before publishing."
+                  );
                 if (errors.length > 0) {
-                    setErrorMsg(errors);
-                    return;
+                  setErrorMsg(errors);
+                  return;
                 }
                 setErrorMsg([]);
 
@@ -232,36 +238,42 @@ function InputFields({ setDiscard }) {
 
                 // Faz upload e obtém URL final do backend
                 let uploadedMediaUrl = "";
-                if ((currentMediaType === "image" || currentMediaType === "file") && currentSelectedFile) {
-                    try {
-                        const typeKey = currentMediaType === "image" ? "image" : "file";
-                        const uploadedData = await uploadMediaFile(currentSelectedFile, typeKey);
-                        uploadedMediaUrl = uploadedData.url || uploadedData.filename || "";
-                    } catch (uploadError) {
-                        setErrorMsg([`Failed to upload ${currentMediaType} file.`]);
-                        return;
-                    }
+                if (
+                  (currentMediaType === "image" ||
+                    currentMediaType === "file") &&
+                  currentSelectedFile
+                ) {
+                  try {
+                    const typeKey =
+                      currentMediaType === "image" ? "image" : "file";
+                    const uploadedData = await uploadMediaFile(
+                      currentSelectedFile,
+                      typeKey
+                    );
+                    uploadedMediaUrl =
+                      uploadedData.url || uploadedData.filename || "";
+                  } catch (uploadError) {
+                    setErrorMsg([`Failed to upload ${currentMediaType} file.`]);
+                    return;
+                  }
                 }
 
-                // Cria o post usando a URL definitiva
                 const newPost = {
-                    title,
-                    body: text,
-                    author: userData.name,
-                    author_type: userData.species,
-                    author_img: userData.avatar,
-                    date: new Date().toISOString(),
-                    image: currentMediaType === "image" ? uploadedMediaUrl : "",
-                    file: currentMediaType === "file" ? uploadedMediaUrl : "",
-                    video: currentMediaType === "video" ? currentMediaValue : "",
-                    link: currentMediaType === "link" ? currentMediaValue : "",
+                  title,
+                  body: text,
+                  author: userData.name,
+                  author_type: userData.species,
+                  author_img: userData.avatar, // já é a URL pública
+                  date: new Date().toISOString(),
+                  image: mediaType === "image" ? uploadedMediaUrl : "",
+                  file: mediaType === "file" ? uploadedMediaUrl : "",
+                  video: mediaType === "video" ? mediaValue : "",
+                  link: mediaType === "link" ? mediaValue : "",
                 };
 
-                // Chama a mutation para criar o post
                 mutation.mutate(newPost);
                 setDiscard(true);
 
-                // Limpa estado da media
                 handleRemoveMedia();
               }}
             >
