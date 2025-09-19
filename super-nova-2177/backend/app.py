@@ -1,27 +1,42 @@
-from fastapi import FastAPI, HTTPException, Query, Body
+from fastapi import FastAPI, HTTPException, Query, Body, Form, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from sqlalchemy import (
     create_engine, Table, Column, Integer, String, MetaData,
-    insert, select, ForeignKey, text
+    insert, select, ForeignKey, text, desc, asc, func, cast, DateTime
 )
 from sqlalchemy.engine import Result
+from sqlalchemy.exc import OperationalError
 import os
 import time
-from sqlalchemy.exc import OperationalError
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import Form, UploadFile, File
 import shutil
-app = FastAPI(
-    title="superNova_2177 Backend API",
-    version="0.2",
-    description="Backend API for managing proposals, votes, comments, and decisions. Provides filtering by likes, date, and author type (AI, Human, Company). Designed for integration with the superNova_2177 frontend app."
-)
+import uuid
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, HTTPException, Query, Body, Form, UploadFile, File
+from pydantic import BaseModel
+from typing import Optional, List, Dict
+from sqlalchemy import (
+    create_engine, Table, Column, Integer, String, MetaData,
+    insert, select, ForeignKey, text, desc, asc, func, cast, DateTime
+)
+from sqlalchemy.engine import Result
+from sqlalchemy.exc import OperationalError
 import os
+import time
+import shutil
+import uuid
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+# Create FastAPI instance FIRST
+app = FastAPI(
+    title="SuperNova 2177 API",
+    description="Backend API for SuperNova 2177",
+    version="1.0.0"
+)
+
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,8 +45,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Ensure uploads directory exists and mount as static
 uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
 
 
 DATABASE_URL = os.environ.get(
@@ -218,21 +236,26 @@ async def create_proposal(
     # Validate author_type
     if author_type not in ("human", "company", "ai"):
         raise HTTPException(status_code=400, detail="Invalid author_type. Must be 'human', 'company', or 'ai'.")
-    os.makedirs("uploads", exist_ok=True)
+    os.makedirs(uploads_dir, exist_ok=True)
     image_filename = ""
     file_filename = ""
+    # Guarantee unique filenames for image and file uploads
     if image:
-        image_filename = image.filename
-        image_path = os.path.join("uploads", image_filename)
+        ext = os.path.splitext(image.filename)[1]
+        unique_img_name = f"{uuid.uuid4().hex}{ext}"
+        image_path = os.path.join(uploads_dir, unique_img_name)
         with open(image_path, "wb") as f:
             content = await image.read()
             f.write(content)
+        image_filename = unique_img_name
     if file:
-        file_filename = file.filename
-        file_path = os.path.join("uploads", file_filename)
+        ext = os.path.splitext(file.filename)[1]
+        unique_file_name = f"{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(uploads_dir, unique_file_name)
         with open(file_path, "wb") as f:
             content = await file.read()
             f.write(content)
+        file_filename = unique_file_name
     stmt = insert(proposals).values(
         title=title,
         body=body,
@@ -472,21 +495,28 @@ def create_run(decision_id: int):
         row = result.fetchone()
         return Run(id=row.id, decision_id=row.decision_id, status=row.status)
 
+
+# Upload image ensuring unique filename
 @app.post("/upload-image", summary="Upload an image file")
 async def upload_image(file: UploadFile = File(...)):
-    os.makedirs("uploads", exist_ok=True)
-    file_path = os.path.join("uploads", file.filename)
+    os.makedirs(uploads_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1]
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(uploads_dir, unique_name)
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
-    return {"filename": file.filename, "url": f"/uploads/{file.filename}"}
+    return {"filename": unique_name, "url": f"/uploads/{unique_name}"}
 
+# Upload any file ensuring unique filename
 @app.post("/upload-file", summary="Upload a generic file")
 async def upload_file(file: UploadFile = File(...)):
-    os.makedirs("uploads", exist_ok=True)
-    file_path = os.path.join("uploads", file.filename)
+    os.makedirs(uploads_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1]
+    unique_name = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(uploads_dir, unique_name)
     with open(file_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
-    return {"filename": file.filename, "url": f"/uploads/{file.filename}"}
+    return {"filename": unique_name, "url": f"/uploads/{unique_name}"}
 
 @app.get("/runs", response_model=List[Run], summary="List all runs")
 def list_runs():
