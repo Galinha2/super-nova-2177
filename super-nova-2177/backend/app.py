@@ -524,7 +524,52 @@ def list_runs():
         stmt = select(runs).order_by(runs.c.id.desc())
         result = conn.execute(stmt)
         return [Run(id=row.id, decision_id=row.decision_id, status=row.status) for row in result.fetchall()]
-    
+
+@app.get("/proposals/{pid}", summary="Get a proposal by ID", response_model=Proposal)
+def get_proposal(pid: int):
+    with engine.connect() as conn:
+        # Busca a proposta pelo id
+        stmt = select(proposals).where(proposals.c.id == pid)
+        row = conn.execute(stmt).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Proposal not found")
+
+        # Busca likes e dislikes
+        vote_stmt = select(votes).where(votes.c.proposal_id == row.id)
+        vote_res = conn.execute(vote_stmt).fetchall()
+        likes = [{"voter": v.voter, "type": v.voter_type} for v in vote_res if v.choice == "up"]
+        dislikes = [{"voter": v.voter, "type": v.voter_type} for v in vote_res if v.choice == "down"]
+
+        # Busca comentários
+        comment_stmt = select(comments).where(comments.c.proposal_id == row.id)
+        comment_res = conn.execute(comment_stmt).fetchall()
+        comments_list = [
+            {"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment}
+            for c in comment_res
+        ]
+
+        # Inicials do user
+        user_initials = (row.author[:2]).upper() if row.author else ""
+
+        return Proposal(
+            id=row.id,
+            title=row.title,
+            text=row.body,
+            userName=row.author,
+            userInitials=user_initials,
+            author_img=row.author_img,
+            time=row.date,
+            likes=likes,
+            dislikes=dislikes,
+            comments=comments_list,
+            media={
+                "image": f"/uploads/{row.image}" if row.image else "",
+                "video": row.video,
+                "link": row.link,
+                "file": f"/uploads/{row.file}" if row.file else ""
+            }
+        )
+        
 @app.delete("/proposals/{pid}", summary="Delete a proposal by ID")
 def delete_proposal(pid: int):
     with engine.connect() as conn:

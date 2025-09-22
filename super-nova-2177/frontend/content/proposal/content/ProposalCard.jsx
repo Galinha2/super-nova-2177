@@ -7,6 +7,7 @@ import { useState } from "react";
 import { FaFileAlt } from "react-icons/fa";
 import { useUser } from "@/content/profile/UserContext";
 import InsertComment from "./InsertComment";
+import { IoMdArrowRoundBack } from "react-icons/io";
 
 function ProposalCard({
   id,
@@ -30,7 +31,7 @@ function ProposalCard({
 
   const [imageLoaded, setImageLoaded] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
-
+  const [imageZoom, setImageZoom] = useState(false);
   const getFullImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith("http://") || url.startsWith("https://")) return url;
@@ -82,13 +83,27 @@ function ProposalCard({
                 <img src="./spinner.svg" alt="loading" />
               </div>
             )}
-            <div className="rounded-md shadow-sm max-h-150 w-full items-center justify-center flex bg-[var(--gray)]">
+            <div
+              className={`rounded-md shadow-sm w-full items-center justify-center flex flex-col ${
+                !imageZoom
+                  ? "bg-[var(--gray)] max-h-150"
+                  : "bg-black fixed w-screen h-screen rounded-[0px] p-5 top-0 left-0 z-9999"
+              }`}
+              onClick={() => setImageZoom(true)}
+            >
+              <IoMdArrowRoundBack
+                className="absolute cursor-pointer top-5 left-5 text-3xl text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImageZoom(false);
+                }}
+              />
               <img
                 src={getFullImageUrl(media.image)}
                 alt={title}
                 className={`rounded-md shadow-sm max-h-150 w-fit ${
                   imageLoaded ? "" : "hidden"
-                }`}
+                } ${!imageZoom ? "bg-[var(--gray)] max-h-150" : "bg-black"}`}
                 onLoad={() => setImageLoaded(true)}
               />
             </div>

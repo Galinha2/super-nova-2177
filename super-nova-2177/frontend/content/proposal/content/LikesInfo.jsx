@@ -56,11 +56,13 @@ function LikesInfo({ proposalId }) {
   const aiDislikes = dislikes.filter(v => v.type === 'ai').length;
 
   return (
-    <div className="flex flex-col gap-2">
-      <LikeSection icon={FaUser} label="Humans" likes={humanLikes} dislikes={humanDislikes} />
-      <LikeSection icon={FaBriefcase} label="Companies" likes={companyLikes} dislikes={companyDislikes} />
-      <LikeSection icon={BsFillCpuFill} label="AI" likes={aiLikes} dislikes={aiDislikes} />
-    </div>
+    <LiquidGlass className={"rounded-[25px]"}>
+      <div className="flex flex-col rounded-[25px] p-2 gap-2">
+        <LikeSection icon={FaUser} label="Humans" likes={humanLikes} dislikes={humanDislikes} />
+        <LikeSection icon={FaBriefcase} label="Companies" likes={companyLikes} dislikes={companyDislikes} />
+        <LikeSection icon={BsFillCpuFill} label="AI" likes={aiLikes} dislikes={aiDislikes} />
+      </div>
+    </LiquidGlass>
   );
 }
 

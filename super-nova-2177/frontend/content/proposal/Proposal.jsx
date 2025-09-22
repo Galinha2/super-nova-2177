@@ -11,10 +11,10 @@ function formatRelativeTime(dateString) {
   if (!dateString) return "now";
 
   const now = new Date();
-  const date = new Date(dateString); // converte ISO para local
+  const date = new Date(dateString);
   const diffMs = now.getTime() - date.getTime(); // em ms
 
-  if (diffMs < 0) return "now"; // previne datas futuras
+  if (diffMs < 0) return "now"; 
 
   const diffMin = Math.floor(diffMs / 1000 / 60);
   const diffHours = Math.floor(diffMin / 60);
@@ -34,10 +34,12 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [discard, setDiscard] = useState(true);
   const [filter, setFilter] = useState("All");
   const inputRef = useRef(null);
+  const [search, setSearch] = useState("");
 
   const { data: posts, isLoading } = useQuery({
-    queryKey: ["posts", activeBE, filter],
+    queryKey: ["posts", activeBE, filter, search],
     queryFn: async () => {
+      // Only do dynamic fetch when not using fake backend
       if (!activeBE) {
         const filterMap = {
           All: "all",
@@ -52,12 +54,15 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
         };
         const filterParam = filterMap[filter];
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const res = await fetch(`${apiUrl}/proposals?filter=${filterParam}`);
-
+        let url = `${apiUrl}/proposals?filter=${filterParam}`;
+        if (search && search.trim() !== "") {
+          url += `&search=${encodeURIComponent(search.trim())}`;
+        }
+        const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch posts");
         return res.json();
       } else {
-        // Fake API with date added for each post
+        // Fake API with date added for each post (search not supported here)
         return [
           {
             userName: "Sophie Lee",
@@ -138,6 +143,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
         ];
       }
     },
+    keepPreviousData: true
   });
 
   return (
@@ -190,7 +196,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           )}
         </div>
       </div>
-      <FilterHeader filter={filter} setFilter={setFilter} />
+      <FilterHeader setSearch={setSearch} search={search} filter={filter} setFilter={setFilter} />
     </div>
   );
 }
