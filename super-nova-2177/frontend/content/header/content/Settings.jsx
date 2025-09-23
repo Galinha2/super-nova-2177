@@ -26,7 +26,7 @@ function Settings({ errorMsg, setErrorMsg, activeBE, setActiveBE, setNotify }) {
 
   return (
     <LiquidGlass className="rounded-[30px] p-3">
-      <div className="flex flex-col items-center justify-center lg:flex-row gap-2">
+      <div className="flex flex-col-reverse gap-10 items-center justify-center lg:flex-row lg:gap-2">
         {open && <div className="">{open && menusMap[open]}</div>}
         <div className="flex flex-col gap-2">
           {Object.entries(settings).map(([key, label]) => (

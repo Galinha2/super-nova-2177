@@ -28,7 +28,11 @@ export default function RootLayout({ children }) {
           {notify.length > 0 && <Notification messages={notify} />}
           <UserProvider>
             <ActiveBEProvider>
-              <HeaderWrapper setNotify={setNotify} errorMsg={errorMsg} setErrorMsg={setErrorMsg} />
+              <HeaderWrapper
+                setNotify={setNotify}
+                errorMsg={errorMsg}
+                setErrorMsg={setErrorMsg}
+              />
               {children}
             </ActiveBEProvider>
           </UserProvider>

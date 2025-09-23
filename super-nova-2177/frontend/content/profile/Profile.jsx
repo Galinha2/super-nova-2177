@@ -43,6 +43,12 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
     }
   }
 
+  function handleReset() {
+    setGetAvatar("");
+    setGetName("");
+    setOpen("");
+  }
+
   async function handleAvatarSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -139,12 +145,20 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
             />
           </div>
         </div>
-        <button
-          onClick={handleUser}
-          className="bg-[var(--blue)] shadow-[var(--shadow-blue)] mt-2 text-[0.8em] rounded-full text-white hover:scale-98 w-fit px-2"
-        >
-          Save
-        </button>
+        <div className="flex font-bold gap-3">
+          <button
+            onClick={handleUser}
+            className="bg-[var(--pink)] shadow-[var(--shadow-pink)] mt-2 text-[0.8em] rounded-full text-white hover:scale-98 w-20 py-1 px-2"
+          >
+            Save
+          </button>
+          <button
+            onClick={handleReset}
+            className="bg-[var(--blue)] shadow-[var(--shadow-blue)] mt-2 text-[0.8em] rounded-full text-white hover:scale-98 w-20 py-1 px-2"
+          >
+            Reset
+          </button>
+        </div>
       </div>
     </div>
   );

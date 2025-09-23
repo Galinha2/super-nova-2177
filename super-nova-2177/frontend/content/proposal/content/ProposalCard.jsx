@@ -23,6 +23,7 @@ function ProposalCard({
   comments = [],
   setErrorMsg,
   setNotify,
+  specie
 }) {
   const [showComments, setShowComments] = useState(false);
   const [localComments, setLocalComments] = useState(comments);
@@ -72,6 +73,8 @@ function ProposalCard({
         <p>-</p>
         <p>{time}</p>
       </div>
+      
+      <p>{specie}</p>
 
       <div className="flex w-full gap-3 flex-col">
         <h1 className="text-[1.5em] my-[-10px]">{title}</h1>

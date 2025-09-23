@@ -35,7 +35,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [filter, setFilter] = useState("All");
   const inputRef = useRef(null);
   const [search, setSearch] = useState("");
-
+  
   const { data: posts, isLoading } = useQuery({
     queryKey: ["posts", activeBE, filter, search],
     queryFn: async () => {
@@ -189,6 +189,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
                 dislikes={post.dislikes}
                 setErrorMsg={setErrorMsg}
                 setNotify={setNotify}
+                specie={post.specie}
               />
             ))
           ) : (
