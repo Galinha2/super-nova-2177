@@ -23,7 +23,8 @@ function ProposalCard({
   comments = [],
   setErrorMsg,
   setNotify,
-  specie
+  specie,
+  className
 }) {
   const [showComments, setShowComments] = useState(false);
   const [localComments, setLocalComments] = useState(comments);
@@ -56,25 +57,27 @@ function ProposalCard({
   };
 
   return (
-    <div className="p-4 text-[var(--text-black)] rounded-[25px] bg-white shadow-md w-100 md:w-130 lg:w-150 xl:w-200 flex flex-col items-center gap-4">
-      <div className="flex items-center justify-start w-full gap-2">
-        {logo ? (
-          <img
-            src={getFullImageUrl(logo)}
-            alt="user avatar"
-            className="rounded-full shadow-md w-8 h-8"
-          />
-        ) : (
-          <div className="rounded-full bg-[var(--gray)] shadow-sm p-2 w-8 h-8 flex items-center justify-center">
-            <p className="text-[0.8em]">{userInitials}</p>
-          </div>
-        )}
-        <p>{userName}</p>
-        <p>-</p>
-        <p>{time}</p>
+    <div className={`p-4 text-[var(--text-black)] ${className ? "" : "rounded-[25px]"} bg-white shadow-md w-100 md:w-130 lg:w-150 xl:w-200 flex flex-col items-center gap-4 ${className}`}>
+      <div className="flex justify-between w-full items-center">
+        <div className="flex items-center justify-start w-full gap-2">
+          {logo ? (
+            <img
+              src={getFullImageUrl(logo)}
+              alt="user avatar"
+              className="rounded-full shadow-md w-8 h-8"
+            />
+          ) : (
+            <div className="rounded-full bg-[var(--gray)] shadow-sm p-2 w-8 h-8 flex items-center justify-center">
+              <p className="text-[0.8em]">{userInitials}</p>
+            </div>
+          )}
+          <p>{userName}</p>
+          <p>-</p>
+          <p>{time}</p>
+        </div>
+        
+        <p className="bg-[var(--blue)] shadow-[var(--shadow-blue)] text-white rounded-full capitalize px-2">{specie}</p>
       </div>
-      
-      <p>{specie}</p>
 
       <div className="flex w-full gap-3 flex-col">
         <h1 className="text-[1.5em] my-[-10px]">{title}</h1>
@@ -94,13 +97,13 @@ function ProposalCard({
               }`}
               onClick={() => setImageZoom(true)}
             >
-              <IoMdArrowRoundBack
+              {setImageZoom && (<IoMdArrowRoundBack
                 className="absolute cursor-pointer top-5 left-5 text-3xl text-white"
                 onClick={(e) => {
                   e.stopPropagation();
                   setImageZoom(false);
                 }}
-              />
+              />)}
               <img
                 src={getFullImageUrl(media.image)}
                 alt={title}
@@ -175,7 +178,7 @@ function ProposalCard({
           <BookShare />
         </div>
 
-        {showComments && (
+        {(showComments || className) ? (
           <div className="flex flex-col gap-2 rounded-[15px] p-2">
             <InsertComment
               setErrorMsg={setErrorMsg}
@@ -192,7 +195,7 @@ function ProposalCard({
               />
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

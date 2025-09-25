@@ -6,6 +6,7 @@ import InputFields from "../create post/InputFields";
 import CardLoading from "../CardLoading";
 import { useQuery } from "@tanstack/react-query";
 import FilterHeader from "../filters/FilterHeader";
+import Link from "next/link";
 
 function formatRelativeTime(dateString) {
   if (!dateString) return "now";
@@ -161,36 +162,37 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
             Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
           ) : posts && posts.length > 0 ? (
             posts.map((post, index) => (
-              <ProposalCard
-                id={post.id}
-                key={index}
-                userName={post.userName}
-                userInitials={post.userInitials}
-                time={formatRelativeTime(post.time)}
-                title={post.title}
-                logo={post.author_img}
-                media={{
-                  image: post.media?.image
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.image}`
-                    : post.image
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.image}`
-                    : "",
-                  video: post.media?.video || post.video || "",
-                  link: post.media?.link || post.link || "",
-                  file: post.media?.file
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.file}`
-                    : post.file
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.file}`
-                    : "",
-                }}
-                text={post.text}
-                comments={post.comments}
-                likes={post.likes}
-                dislikes={post.dislikes}
-                setErrorMsg={setErrorMsg}
-                setNotify={setNotify}
-                specie={post.specie}
-              />
+              <Link href={`/proposals/${post.id}`} key={index}>
+                <ProposalCard
+                  id={post.id}
+                  userName={post.userName}
+                  userInitials={post.userInitials}
+                  time={formatRelativeTime(post.time)}
+                  title={post.title}
+                  logo={post.author_img}
+                  media={{
+                    image: post.media?.image
+                      ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.image}`
+                      : post.image
+                      ? `${process.env.NEXT_PUBLIC_API_URL}${post.image}`
+                      : "",
+                    video: post.media?.video || post.video || "",
+                    link: post.media?.link || post.link || "",
+                    file: post.media?.file
+                      ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.file}`
+                      : post.file
+                      ? `${process.env.NEXT_PUBLIC_API_URL}${post.file}`
+                      : "",
+                  }}
+                  text={post.text}
+                  comments={post.comments}
+                  likes={post.likes}
+                  dislikes={post.dislikes}
+                  setErrorMsg={setErrorMsg}
+                  setNotify={setNotify}
+                  specie={post.author_type}
+                />
+              </Link>
             ))
           ) : (
             <p className="text-center text-gray-500">No Proposals found.</p>

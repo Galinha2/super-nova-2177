@@ -80,7 +80,7 @@ proposals = Table(
     Column("title", String),
     Column("body", String),
     Column("author", String),
-    Column("author_type", String, nullable=False, server_default="human"),  # ensure column exists and not nullable
+    Column("author_type", String, nullable=True),
     Column("author_img", String),
     Column("date", String),
     Column("image", String, nullable=True),
@@ -137,7 +137,7 @@ with engine.connect() as conn:
     )
     if not result.fetchone():
         # Add the column if it doesn't exist
-        conn.execute(text("ALTER TABLE proposals ADD COLUMN author_type VARCHAR DEFAULT 'human' NOT NULL"))
+        conn.execute(text("ALTER TABLE proposals ADD COLUMN author_type VARCHAR DEFAULT 'human'"))
         conn.commit()
     # Fill empty/null author_type with 'human'
     conn.execute(text("UPDATE proposals SET author_type='human' WHERE author_type IS NULL OR author_type=''"))
@@ -149,7 +149,7 @@ class ProposalIn(BaseModel):
     title: str
     body: str
     author: str
-    author_type: str
+    author_type: Optional[str] = ""
     author_img: Optional[str] = ""
     date: Optional[str] = ""
     image: Optional[str] = ""
@@ -165,6 +165,7 @@ class Proposal(BaseModel):
     userInitials: str
     author_img: str
     time: str
+    author_type: Optional[str] = ""
     likes: List[Dict] = []
     dislikes: List[Dict] = []
     comments: List[Dict] = []
@@ -219,7 +220,7 @@ async def create_proposal(
     title: str = Form(..., description="Title of the proposal"),
     body: str = Form(..., description="Detailed description of the proposal"),
     author: str = Form(..., description="Name of the author"),
-    author_type: str = Form(..., description="Type of the author ('human', 'company', or 'ai')"),
+    author_type: str = Form("", description="Type of the author ('human', 'company', or 'ai')"),
     author_img: str = Form("", description="URL or filename for author's avatar image"),
     date: str = Form("", description="Date string (ISO format preferred)"),
     video: str = Form("", description="URL to a video associated with the proposal"),
@@ -234,7 +235,7 @@ async def create_proposal(
     )
 ):
     # Validate author_type
-    if author_type not in ("human", "company", "ai"):
+    if author_type and author_type not in ("human", "company", "ai"):
         raise HTTPException(status_code=400, detail="Invalid author_type. Must be 'human', 'company', or 'ai'.")
     os.makedirs(uploads_dir, exist_ok=True)
     image_filename = ""
@@ -260,7 +261,7 @@ async def create_proposal(
         title=title,
         body=body,
         author=author,
-        author_type=author_type,
+        author_type=author_type or "",
         author_img=author_img or "",
         date=date or "",
         image=image_filename,
@@ -282,6 +283,7 @@ async def create_proposal(
             userInitials=(row.author[:2]).upper() if row.author else "",
             author_img=row.author_img,
             time=row.date,
+            author_type=row.author_type,
             likes=[],
             dislikes=[],
             comments=[],
@@ -371,6 +373,7 @@ def list_proposals(
                 "text": row.body,
                 "author_img": row.author_img,
                 "time": row.date,
+                "author_type": row.author_type,
                 "likes": likes,
                 "dislikes": dislikes,
                 "comments": comments_list,
@@ -559,6 +562,7 @@ def get_proposal(pid: int):
             userInitials=user_initials,
             author_img=row.author_img,
             time=row.date,
+            author_type=row.author_type,
             likes=likes,
             dislikes=dislikes,
             comments=comments_list,
