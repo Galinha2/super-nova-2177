@@ -11,38 +11,26 @@ import MediaInput from "./Media";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 async function uploadMediaFile(file, type) {
-  // Compress if image and type is image
+  const formData = new FormData();
   let fileToUpload = file;
   if (type === "image" && file instanceof File) {
     try {
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1024,
-        useWebWorker: true,
-      };
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
       fileToUpload = await imageCompression(file, options);
     } catch {
       fileToUpload = file;
     }
   }
-
-  const formData = new FormData();
   formData.append("file", fileToUpload);
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/upload-${type}`,
-    {
-      method: "POST",
-      body: formData,
-    }
-  );
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload-${type}`, {
+    method: "POST",
+    body: formData,
+  });
 
-  if (!response.ok) {
-    throw new Error("Failed to upload media file");
-  }
-
+  if (!response.ok) throw new Error(`Failed to upload ${type} file`);
   const data = await response.json();
-  return data; // Expected to contain url or filename
+  return data.filename || data.url || "";
 }
 
 function InputFields({ setDiscard }) {
@@ -70,35 +58,26 @@ function InputFields({ setDiscard }) {
 
     if (fileObj.type.startsWith("image/")) {
       try {
-        const options = {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1024,
-          useWebWorker: true,
-        };
+        const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
         const compressedFile = await imageCompression(fileObj, options);
         setSelectedFile(compressedFile);
         setMediaType("image");
         setMediaValue(compressedFile.name);
       } catch {
-        // fallback to original file if compression fails
         setSelectedFile(fileObj);
         setMediaType("image");
         setMediaValue(fileObj.name);
       }
     } else {
-      // For non-image files, treat as file type
       setSelectedFile(fileObj);
       setMediaType("file");
       setMediaValue(fileObj.name);
     }
   };
 
-  const handleFileInputChange = (e) => {
-    setInputValue(e.target.value);
-  };
-
+  const handleFileInputChange = (e) => setInputValue(e.target.value);
   const handleSaveInputMedia = () => {
-    if (inputValue.trim() === "") return;
+    if (!inputValue.trim()) return;
     setMediaValue(inputValue.trim());
     setInputValue("");
   };
@@ -113,18 +92,10 @@ function InputFields({ setDiscard }) {
       formData.append("author_img", newPost.author_img);
       formData.append("date", newPost.date);
 
-      if (newPost.image) {
-        formData.append("image", newPost.image);
-      };
-      if (newPost.file) {
-        formData.append("file", newPost.file);
-      }
-      if (newPost.video) {
-        formData.append("video", newPost.video);
-      }
-      if (newPost.link) {
-        formData.append("link", newPost.link);
-      }
+      if (newPost.image) formData.append("image", newPost.image);
+      if (newPost.file) formData.append("file", newPost.file);
+      if (newPost.video) formData.append("video", newPost.video);
+      if (newPost.link) formData.append("link", newPost.link);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals`, {
         method: "POST",
@@ -138,43 +109,34 @@ function InputFields({ setDiscard }) {
       return response.json();
     },
     {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["proposals"]);
-      },
-      onError: (error) => {
-        setErrorMsg([error.message]);
-      },
+      onSuccess: () => queryClient.invalidateQueries(["proposals"]),
+      onError: (error) => setErrorMsg([error.message]),
     }
   );
 
   return (
     <div className="fixed z-100 bottom-0 md:top-0 left-0 lg:relative lg:mt-[-70px]">
       {errorMsg.length > 0 && <Error messages={errorMsg} />}
-      <LiquidGlass
-        className={
-          "lg:p-5 h-auto bgGrayDark w-screen lg:w-150 xl:w-200 lg:rounded-[30px]"
-        }
-      >
+      <LiquidGlass className="lg:p-5 h-auto bgGrayDark w-screen lg:w-150 xl:w-200 lg:rounded-[30px]">
         <div className="w-screen pt-30 lg:pt-0 p-5 lg:p-0 m-auto h-screen lg:h-auto lg:w-140 xl:w-190 flex text-[var(--text-black)] flex-col gap-4">
           <h1>Title</h1>
           <input
-            className="bg-white rounded-full shadow-md px-4 py-1 w-full text-[0.6em]"
             type="text"
             placeholder="Insert Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            className="bg-white rounded-full shadow-md px-4 py-1 w-full text-[0.6em]"
           />
           <textarea
-            className="bg-white rounded-[20px] h-50 shadow-md px-4 py-1 w-full text-[0.5em]"
             placeholder="Insert Text"
             value={text}
             onChange={(e) => setText(e.target.value)}
+            className="bg-white rounded-[20px] h-50 shadow-md px-4 py-1 w-full text-[0.5em]"
           />
           <div className="flex gap-3 text-[0.6em] items-center">
             <MediaInput
               type="image"
               icon={<FaImage className="text-2xl" />}
-              accept="image/*"
               mediaType={mediaType}
               setMediaType={setMediaType}
               mediaValue={mediaValue}
@@ -235,45 +197,21 @@ function InputFields({ setDiscard }) {
               onClick={async () => {
                 const errors = [];
                 if (!title.trim()) errors.push("No post Title found.");
-                if (!text.trim() && !mediaValue && !selectedFile)
-                  errors.push("No post Media found.");
-                if (!userData?.name)
-                  errors.push(
-                    "Enter username in profile settings before publishing."
-                  );
-                if (!userData?.species)
-                  errors.push(
-                    "Enter your species in profile settings before publishing."
-                  );
+                if (!text.trim() && !mediaValue && !selectedFile) errors.push("No post Media found.");
+                if (!userData?.name) errors.push("Enter username in profile settings before publishing.");
+                if (!userData?.species) errors.push("Enter your species in profile settings before publishing.");
                 if (errors.length > 0) {
                   setErrorMsg(errors);
                   return;
                 }
                 setErrorMsg([]);
 
-                // Captura cópias locais do estado
-                const currentSelectedFile = selectedFile;
-                const currentMediaType = mediaType;
-                const currentMediaValue = mediaValue;
-
-                // Faz upload e obtém URL final do backend
                 let uploadedMediaUrl = "";
-                if (
-                  (currentMediaType === "image" ||
-                    currentMediaType === "file") &&
-                  currentSelectedFile
-                ) {
+                if ((mediaType === "image" || mediaType === "file") && selectedFile) {
                   try {
-                    const typeKey =
-                      currentMediaType === "image" ? "image" : "file";
-                    const uploadedData = await uploadMediaFile(
-                      currentSelectedFile,
-                      typeKey
-                    );
-                    uploadedMediaUrl =
-                      uploadedData.url || uploadedData.filename || "";
-                  } catch (uploadError) {
-                    setErrorMsg([`Failed to upload ${currentMediaType} file.`]);
+                    uploadedMediaUrl = await uploadMediaFile(selectedFile, mediaType);
+                  } catch {
+                    setErrorMsg([`Failed to upload ${mediaType} file.`]);
                     return;
                   }
                 }
@@ -285,15 +223,14 @@ function InputFields({ setDiscard }) {
                   author_type: userData.species,
                   author_img: userData.avatar || "",
                   date: new Date().toISOString(),
-                  image: currentMediaType === "image" ? uploadedMediaUrl : "",
-                  file: currentMediaType === "file" ? uploadedMediaUrl : "",
-                  video: currentMediaType === "video" ? currentMediaValue : "",
-                  link: currentMediaType === "link" ? currentMediaValue : "",
+                  image: mediaType === "image" ? uploadedMediaUrl : "",
+                  file: mediaType === "file" ? uploadedMediaUrl : "",
+                  video: mediaType === "video" ? mediaValue : "",
+                  link: mediaType === "link" ? mediaValue : "",
                 };
 
                 mutation.mutate(newPost);
                 setDiscard(true);
-
                 handleRemoveMedia();
                 setTitle("");
                 setText("");
