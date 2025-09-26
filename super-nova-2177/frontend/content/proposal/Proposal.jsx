@@ -28,7 +28,7 @@ function formatRelativeTime(dateString) {
   if (diffHours > 0) return diffHours === 1 ? "1h" : `${diffHours}h`;
   if (diffMin > 0) return diffMin === 1 ? "1min" : `${diffMin}min`;
   return "now";
-};
+}
 
 function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [discard, setDiscard] = useState(true);
@@ -144,7 +144,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
       }
     },
     keepPreviousData: true,
-  });
+  })
 
   return (
     <div className="mb-50 lg:mb-10 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto mt-5 lg:mt-50 gap-10 justify-center relative">

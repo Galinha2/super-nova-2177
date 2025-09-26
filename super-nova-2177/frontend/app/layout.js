@@ -7,7 +7,7 @@ import { UserProvider } from "@/content/profile/UserContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Error from "@/content/Error";
 import Notification from "@/content/Notification";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const interTight = Inter_Tight({
   subsets: ["latin"],
@@ -24,10 +24,10 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${interTight.variable} flex antialiased`}>
         <QueryClientProvider client={queryClient}>
-          {errorMsg.length > 0 && <Error messages={errorMsg} />}
-          {notify.length > 0 && <Notification messages={notify} />}
           <UserProvider>
             <ActiveBEProvider>
+              {errorMsg.length > 0 ? <Error messages={errorMsg} /> : null}
+              {notify.length > 0 && <Notification messages={notify} />}
               <HeaderWrapper
                 setNotify={setNotify}
                 errorMsg={errorMsg}
