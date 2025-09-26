@@ -6,6 +6,7 @@ import InputFields from "../create post/InputFields";
 import CardLoading from "../CardLoading";
 import { useQuery } from "@tanstack/react-query";
 import FilterHeader from "../filters/FilterHeader";
+import React from "react";
 
 function formatRelativeTime(dateString) {
   if (!dateString) return "now";
@@ -153,7 +154,9 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           <CreatePost setDiscard={setDiscard} />
         ) : (
           <div ref={inputRef}>
-            <InputFields setDiscard={setDiscard} />
+            <React.Suspense fallback={<p>Loading post input...</p>}>
+              <InputFields setDiscard={setDiscard} />
+            </React.Suspense>
           </div>
         )}
         <div className="flex lg:flex-col gap-10 flex-col">

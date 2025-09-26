@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useState, useMemo } from "react";
+import { createContext, useState, useContext, useEffect } from "react";
 
 const UserContext = createContext();
 
@@ -18,21 +18,23 @@ export function UserProvider({ children }) {
     species: "",
     avatar: "",
     name: "",
+    initials: "",
   });
 
-  const initials = useMemo(() => calculateInitials(userData.name), [userData.name]);
+  useEffect(() => {
+    setUserData(prev => ({
+      ...prev,
+      initials: calculateInitials(prev.name)
+    }));
+  }, [userData.name]);
 
   return (
-    <UserContext.Provider value={{ userData: { ...userData, initials }, setUserData }}>
+    <UserContext.Provider value={{ userData, setUserData }}>
       {children}
     </UserContext.Provider>
   );
 }
 
 export function useUser() {
-  const context = useContext(UserContext);
-  if (!context) {
-    throw new Error("useUser must be used within a UserProvider");
-  }
-  return context;
+  return useContext(UserContext);
 }
