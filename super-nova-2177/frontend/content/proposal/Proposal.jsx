@@ -28,7 +28,7 @@ function formatRelativeTime(dateString) {
   if (diffHours > 0) return diffHours === 1 ? "1h" : `${diffHours}h`;
   if (diffMin > 0) return diffMin === 1 ? "1min" : `${diffMin}min`;
   return "now";
-}
+};
 
 function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [discard, setDiscard] = useState(true);
