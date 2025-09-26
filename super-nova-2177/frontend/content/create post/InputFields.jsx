@@ -61,7 +61,7 @@ function InputFields({ setDiscard }) {
     setInputValue("");
   };
 
-    const handlePublishPost = async () => {
+  const handlePublishPost = async () => {
     const errors = [];
     if (!title.trim()) errors.push("No post Title found.");
     if (!text.trim() && !mediaValue && !selectedFile) errors.push("No post Media found.");
@@ -77,7 +77,7 @@ function InputFields({ setDiscard }) {
       let uploadedFileUrl = "";
 
       if (selectedFile) {
-        const fileName = `${Date.now()}_${selectedFile.name}`.replace(/\s/g, "_");
+        const fileName = `${Date.now()}_${selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
         const { data, error: uploadError } = await supabase.storage
           .from("proposals")
@@ -131,7 +131,6 @@ function InputFields({ setDiscard }) {
 
       if (insertError) throw new Error(`Failed to create post: ${insertError.message}`);
 
-      // Limpar campos
       setTitle("");
       setText("");
       setSelectedFile(null);
