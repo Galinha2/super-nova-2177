@@ -8,6 +8,7 @@ import { FaFileAlt } from "react-icons/fa";
 import { useUser } from "@/content/profile/UserContext";
 import InsertComment from "./InsertComment";
 import { IoMdArrowRoundBack } from "react-icons/io";
+import Link from "next/link";
 
 function ProposalCard({
   id,
@@ -64,7 +65,8 @@ function ProposalCard({
             <img
               src={getFullImageUrl(logo)}
               alt="user avatar"
-              className="rounded-full shadow-md w-8 h-8"
+              className="rounded-[25px] shadow-md w-8 h-8"
+              onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <div className="rounded-full bg-[var(--gray)] shadow-sm p-2 w-8 h-8 flex items-center justify-center">
@@ -80,20 +82,21 @@ function ProposalCard({
       </div>
 
       <div className="flex w-full gap-3 flex-col">
-        <h1 className="text-[1.5em] my-[-10px]">{title}</h1>
-
+        <Link key={id} href={`/proposals/${id}`}>
+          <h1 className="text-[1.5em] my-[-10px] cursor-pointer">{title}</h1>
+        </Link>
         {media.image && (
           <>
             {!imageLoaded && (
-              <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full">
-                <img src="./spinner.svg" alt="loading" />
+              <div className="bg-[var(--gray)] cursor-pointer shadow-sm flex items-center justify-center h-50 w-full">
+                <img className="cursor-pointer" src="./spinner.svg" alt="loading" onClick={(e) => e.stopPropagation()} />
               </div>
             )}
             <div
-              className={`rounded-md shadow-sm w-full items-center justify-center flex flex-col ${
+              className={`shadow-sm w-full items-center justify-center flex flex-col ${
                 !imageZoom
-                  ? "bg-[var(--gray)] max-h-150"
-                  : "bg-black fixed w-screen h-screen rounded-[0px] p-5 top-0 left-0 z-9999"
+                  ? "bg-[var(--gray)] rounded-[20px] max-h-150"
+                  : "bg-black fixed w-screen h-screen p-5 top-0 left-0 z-9999"
               }`}
               onClick={() => setImageZoom(true)}
             >
@@ -107,24 +110,24 @@ function ProposalCard({
               <img
                 src={getFullImageUrl(media.image)}
                 alt={title}
-                className={`rounded-md shadow-sm max-h-150 w-fit ${
+                className={`${!imageZoom ? "rounded-[20px]" : ""} shadow-sm max-h-150 w-fit cursor-pointer ${
                   imageLoaded ? "" : "hidden"
                 } ${!imageZoom ? "bg-[var(--gray)] max-h-150" : "bg-black"}`}
                 onLoad={() => setImageLoaded(true)}
+                onClick={() => setImageZoom(true)}
               />
             </div>
           </>
         )}
-
         {media.video && (
           <>
             {!videoLoaded && (
-              <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full">
-                <img src="./spinner.svg" alt="loading" />
+              <div className="bg-[var(--gray)] rounded-[20px] shadow-sm flex items-center justify-center h-50 w-full">
+                <img src="./spinner.svg" alt="loading" onClick={(e) => e.stopPropagation()} />
               </div>
             )}
             <div
-              className={`rounded-md shadow-sm w-full bg-[var(--gray)] ${
+              className={`rounded-[20px] shadow-sm w-full bg-[var(--gray)] ${
                 videoLoaded ? "" : "hidden"
               } aspect-video`}
             >
@@ -135,12 +138,12 @@ function ProposalCard({
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 onLoad={() => setVideoLoaded(true)}
-                className="w-full h-full rounded-md"
+                className="w-full h-full rounded-[20px]"
+                onClick={(e) => e.stopPropagation()}
               ></iframe>
             </div>
           </>
         )}
-
         {text && <p className="post-text text-[0.9em] w-full">{text}</p>}
         {media.link && (
           <a
@@ -148,6 +151,7 @@ function ProposalCard({
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 underline"
+            onClick={(e) => e.stopPropagation()}
           >
             {media.link}
           </a>
@@ -157,6 +161,7 @@ function ProposalCard({
             href={getFullImageUrl(media.file)}
             download
             className="cursor-pointer flex items-center bg-[var(--blue)] text-white shadow-[var(--shadow-blue)] w-fit px-2 py-2 rounded-full"
+            onClick={(e) => e.stopPropagation()}
           >
             <FaFileAlt className="text-[2em]" />
             <p>Download file</p>
