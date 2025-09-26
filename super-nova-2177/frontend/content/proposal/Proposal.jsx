@@ -9,7 +9,7 @@ import FilterHeader from "../filters/FilterHeader";
 import supabase from "../../supabaseClient";
 
 function formatRelativeTime(dateString) {
-  if (!dateString) return "now";
+  if (!dateString) return "now"
 
   // Forçar interpretação como UTC
   const date = new Date(dateString + "Z"); 
