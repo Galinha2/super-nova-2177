@@ -50,7 +50,10 @@ function LikesDeslikes({
     );
   }
 
-  const handleLikeClick = async () => {
+  const handleLikeClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (!userData?.name || !userData?.species) {
       setErrorMsg(["User name or species is missing"]);
       return;
@@ -76,7 +79,10 @@ function LikesDeslikes({
     }
   };
 
-  const handleDislikeClick = async () => {
+  const handleDislikeClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (!userData?.name || !userData?.species) {
       setErrorMsg(["User name or species is missing"]);
       return;
@@ -105,7 +111,7 @@ function LikesDeslikes({
     <>
       <div className="flex text-[var(--text-black)] bg-[var(--gray)] shadow-md w-fit gap-2 rounded-full px-1 py-1 items-center justify-between">
         <button
-          onClick={handleLikeClick}
+          onClick={(e) => handleLikeClick(e)}
           style={{
             color: clicked === "like" ? "white" : "var(--text-black)",
             background: clicked === "like" ? "var(--pink)" : "transparent",
@@ -119,7 +125,7 @@ function LikesDeslikes({
           <p className="h-fit">{likes}</p>
         </button>
         <button
-          onClick={handleDislikeClick}
+          onClick={(e) => handleDislikeClick(e)}
           style={{
             color: clicked === "dislike" ? "white" : "var(--text-black)",
             background: clicked === "dislike" ? "var(--blue)" : "transparent",
@@ -134,12 +140,20 @@ function LikesDeslikes({
         </button>
         {action ? (
           <IoIosClose
-            onClick={() => setAction(false)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setAction(false);
+            }}
             className="text-white rounded-full h-[30px] w-[30px] bg-[var(--transparent-gray)] cursor-pointer"
           />
         ) : (
           <IoIosArrowUp
-            onClick={() => setAction(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setAction(true);
+            }}
             className="text-white rounded-full h-[30px] w-[30px] bg-[var(--transparent-gray)] cursor-pointer"
           />
         )}
