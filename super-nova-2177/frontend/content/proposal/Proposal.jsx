@@ -36,112 +36,29 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const inputRef = useRef(null);
   const [search, setSearch] = useState("");
 
-  const { data: posts, isLoading } = useQuery({
-    queryKey: ["posts", activeBE, filter, search],
+  const { data: posts, isLoading, refetch } = useQuery({
+    queryKey: ["proposals", filter, search],
     queryFn: async () => {
-      // Only do dynamic fetch when not using fake backend
-      if (!activeBE) {
-        const filterMap = {
-          All: "all",
-          Latest: "latest",
-          Oldest: "oldest",
-          "Top Liked": "topLikes",
-          "Less Liked": "fewestLikes",
-          Popular: "popular",
-          AI: "ai",
-          Company: "company",
-          Human: "human",
-        };
-        const filterParam = filterMap[filter];
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        let url = `${apiUrl}/proposals?filter=${filterParam}`;
-        if (search && search.trim() !== "") {
-          url += `&search=${encodeURIComponent(search.trim())}`;
-        }
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to fetch posts");
-        return res.json();
-      } else {
-        // Fake API with date added for each post (search not supported here)
-        return [
-          {
-            userName: "Sophie Lee",
-            userInitials: "SL",
-            date: new Date(Date.now() - 45 * 60000).toISOString(), // 45 minutes ago
-            title: "Check this out",
-            video: "https://www.youtube.com/embed/ZeerrnuLi5E",
-            likes: [1, 1, 1, 1, 1],
-            dislikes: [2],
-            comments: [
-              {
-                user_img:
-                  "https://t4.ftcdn.net/jpg/03/96/16/79/360_F_396167959_aAhZiGlJoeXOBHivMvaO0Aloxvhg3eVT.jpg",
-                user: "Ethan Black",
-                comment: "Nice find!",
-              },
-              { user: "Fiona Gray", comment: "Thanks for sharing!" },
-              {
-                user_img:
-                  "https://blog.stocksnap.io/content/images/2022/02/smiling-woman_W6GFOSFAXA.jpg",
-                user: "Gray May",
-                comment:
-                  "Thanks for sharing! for sharing! for sharing! for sharing!",
-              },
-            ],
-          },
-          {
-            userName: "Alice Johnson",
-            userInitials: "AJ",
-            date: new Date(Date.now() - 3 * 3600000).toISOString(), // 3 hours ago
-            title: "Excited to share this!",
-            text: "Just finished my latest project, feeling accomplished!",
-            video: "",
-            likes: [23, 23, 23],
-            dislikes: [1],
-            comments: [
-              { user: "Bob Smith", comment: "Amazing work!" },
-              {
-                user_img:
-                  "https://img.freepik.com/free-photo/lifestyle-people-emotions-casual-concept-confident-nice-smiling-asian-woman-cross-arms-chest-confident-ready-help-listening-coworkers-taking-part-conversation_1258-59335.jpg",
-                user: "Clara White",
-                comment: "Congrats!",
-              },
-            ],
-          },
-          {
-            userName: "Michael Brown",
-            userInitials: "MB",
-            date: new Date(Date.now() - 2 * 86400000).toISOString(), // 2 days ago
-            title: "Watch this video!",
-            video:
-              "https://www.youtube.com/watch?v=2iK3ccCsI6s&ab_channel=SMTOWN",
-            likes: [1],
-            dislikes: [1, 3, 4, 2],
-            comments: [{ user: "Diana Green", comment: "Interesting video!" }],
-          },
-          {
-            userName: "Tom Harris",
-            userInitials: "TH",
-            date: new Date(Date.now() - 15 * 86400000).toISOString(), // 15 days ago
-            title: "Random thoughts",
-            text: "It's been a productive day. Feeling motivated to continue learning new skills.",
-            video: "",
-            likes: [2, 3, 2],
-            dislikes: [2, 3, 2, 3],
-            comments: [],
-          },
-          {
-            userName: "Emma Wilson",
-            userInitials: "EW",
-            date: new Date(Date.now() - 45 * 86400000).toISOString(), // 45 days ago
-            title: "Another random post",
-            text: "Sharing some thoughts on productivity and workflow optimization.",
-            likes: [3, 3, 4],
-            dislikes: [],
-            comments: [{ user: "Liam King", comment: "Great insights!" }],
-          },
-        ];
+      const filterMap = {
+        All: "all",
+        Latest: "latest",
+        Oldest: "oldest",
+        "Top Liked": "topLikes",
+        "Less Liked": "fewestLikes",
+        Popular: "popular",
+        AI: "ai",
+        Company: "company",
+        Human: "human",
+      };
+      const filterParam = filterMap[filter];
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      let url = `${apiUrl}/proposals?filter=${filterParam}`;
+      if (search && search.trim() !== "") {
+        url += `&search=${encodeURIComponent(search.trim())}`;
       }
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch posts");
+      return res.json();
     },
     keepPreviousData: true,
   });
@@ -153,7 +70,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           <CreatePost setDiscard={setDiscard} />
         ) : (
           <div ref={inputRef}>
-            <InputFields setDiscard={setDiscard} />
+            <InputFields setDiscard={setDiscard} refetch={refetch} />
           </div>
         )}
         <div className="flex lg:flex-col gap-10 flex-col">

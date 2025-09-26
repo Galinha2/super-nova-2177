@@ -10,30 +10,7 @@ import Error from "../Error";
 import MediaInput from "./Media";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-async function uploadMediaFile(file, type) {
-  const formData = new FormData();
-  let fileToUpload = file;
-  if (type === "image" && file instanceof File) {
-    try {
-      const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
-      fileToUpload = await imageCompression(file, options);
-    } catch {
-      fileToUpload = file;
-    }
-  }
-  formData.append("file", fileToUpload);
-
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload-${type}`, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) throw new Error(`Failed to upload ${type} file`);
-  const data = await response.json();
-  return data.filename || data.url || "";
-}
-
-function InputFields({ setDiscard }) {
+function InputFields({ setDiscard, setPosts, refetchPosts }) {
   const { userData } = useUser();
   const queryClient = useQueryClient();
 
@@ -43,13 +20,13 @@ function InputFields({ setDiscard }) {
   const [mediaType, setMediaType] = useState("");
   const [mediaValue, setMediaValue] = useState("");
   const [inputValue, setInputValue] = useState("");
-  const [selectedFile, setSelectedFile] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const handleRemoveMedia = () => {
     setMediaType("");
     setMediaValue("");
     setInputValue("");
-    setSelectedFile("");
+    setSelectedFile(null);
   };
 
   const handleFileChange = async (e) => {
@@ -82,8 +59,8 @@ function InputFields({ setDiscard }) {
     setInputValue("");
   };
 
-  const mutation = useMutation(
-    async (newPost) => {
+  const mutation = useMutation({
+    mutationFn: async (newPost) => {
       const formData = new FormData();
       formData.append("title", newPost.title);
       formData.append("body", newPost.text);
@@ -108,11 +85,21 @@ function InputFields({ setDiscard }) {
       }
       return response.json();
     },
-    {
-      onSuccess: () => queryClient.invalidateQueries(["proposals"]),
-      onError: (error) => setErrorMsg([error.message]),
-    }
-  );
+    onSuccess: (data) => {
+      if (setPosts) {
+        setPosts((oldPosts) => [data, ...oldPosts]);
+      }
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      if (refetchPosts) {
+        refetchPosts();
+      }
+      setDiscard(true);
+      handleRemoveMedia();
+      setTitle("");
+      setText("");
+    },
+    onError: (error) => setErrorMsg([error.message]),
+  });
 
   return (
     <div className="fixed z-100 bottom-0 md:top-0 left-0 lg:relative lg:mt-[-70px]">
@@ -206,16 +193,6 @@ function InputFields({ setDiscard }) {
                 }
                 setErrorMsg([]);
 
-                let uploadedMediaUrl = "";
-                if ((mediaType === "image" || mediaType === "file") && selectedFile) {
-                  try {
-                    uploadedMediaUrl = await uploadMediaFile(selectedFile, mediaType);
-                  } catch {
-                    setErrorMsg([`Failed to upload ${mediaType} file.`]);
-                    return;
-                  }
-                }
-
                 const newPost = {
                   title,
                   text,
@@ -223,17 +200,13 @@ function InputFields({ setDiscard }) {
                   author_type: userData.species,
                   author_img: userData.avatar || "",
                   date: new Date().toISOString(),
-                  image: mediaType === "image" ? uploadedMediaUrl : "",
-                  file: mediaType === "file" ? uploadedMediaUrl : "",
+                  image: mediaType === "image" ? selectedFile : null,
+                  file: mediaType === "file" ? selectedFile : null,
                   video: mediaType === "video" ? mediaValue : "",
                   link: mediaType === "link" ? mediaValue : "",
                 };
 
                 mutation.mutate(newPost);
-                setDiscard(true);
-                handleRemoveMedia();
-                setTitle("");
-                setText("");
               }}
             >
               Publish

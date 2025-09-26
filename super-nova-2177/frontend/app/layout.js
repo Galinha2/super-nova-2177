@@ -15,7 +15,17 @@ const interTight = Inter_Tight({
   variable: "--font-inter-tight",
 });
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
 
 export default function RootLayout({ children }) {
   const [errorMsg, setErrorMsg] = useState([]);
