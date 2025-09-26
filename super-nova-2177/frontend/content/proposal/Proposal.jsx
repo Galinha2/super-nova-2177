@@ -6,8 +6,8 @@ import InputFields from "../create post/InputFields";
 import CardLoading from "../CardLoading";
 import { useQuery } from "@tanstack/react-query";
 import FilterHeader from "../filters/FilterHeader";
-import React from "react";
 import Link from "next/link";
+import React from "react";
 
 function formatRelativeTime(dateString) {
   if (!dateString) return "now";
@@ -16,7 +16,7 @@ function formatRelativeTime(dateString) {
   const date = new Date(dateString);
   const diffMs = now.getTime() - date.getTime(); // em ms
 
-  if (diffMs < 0) return "now";
+  if (diffMs < 0) return "now"; 
 
   const diffMin = Math.floor(diffMs / 1000 / 60);
   const diffHours = Math.floor(diffMin / 60);
@@ -37,7 +37,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [filter, setFilter] = useState("All");
   const inputRef = useRef(null);
   const [search, setSearch] = useState("");
-
+  
   const { data: posts, isLoading } = useQuery({
     queryKey: ["posts", activeBE, filter, search],
     queryFn: async () => {
@@ -145,7 +145,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
         ];
       }
     },
-    keepPreviousData: true,
+    keepPreviousData: true
   });
 
   return (
@@ -202,12 +202,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           )}
         </div>
       </div>
-      <FilterHeader
-        setSearch={setSearch}
-        search={search}
-        filter={filter}
-        setFilter={setFilter}
-      />
+      <FilterHeader setSearch={setSearch} search={search} filter={filter} setFilter={setFilter} />
     </div>
   );
 }
