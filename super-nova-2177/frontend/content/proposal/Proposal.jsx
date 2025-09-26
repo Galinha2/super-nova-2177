@@ -1,18 +1,20 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import CreatePost from "../create post/CreatePost";
 import ProposalCard from "./content/ProposalCard";
 import InputFields from "../create post/InputFields";
 import CardLoading from "../CardLoading";
-import { useQuery } from "@tanstack/react-query";
 import FilterHeader from "../filters/FilterHeader";
+import supabase from "../../supabaseClient";
 
 function formatRelativeTime(dateString) {
   if (!dateString) return "now";
 
+  // Forçar interpretação como UTC
+  const date = new Date(dateString + "Z"); 
   const now = new Date();
-  const date = new Date(dateString);
-  const diffMs = now.getTime() - date.getTime(); // em ms
+  const diffMs = now - date;
 
   if (diffMs < 0) return "now";
 
@@ -33,118 +35,90 @@ function formatRelativeTime(dateString) {
 function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [discard, setDiscard] = useState(true);
   const [filter, setFilter] = useState("All");
-  const inputRef = useRef(null);
   const [search, setSearch] = useState("");
+  const inputRef = useRef(null);
 
-  const { data: posts, isLoading } = useQuery({
-    queryKey: ["posts", activeBE, filter, search],
+  const { data: posts, isLoading, error } = useQuery({
+    queryKey: ["proposals", filter, search],
     queryFn: async () => {
-      // Only do dynamic fetch when not using fake backend
-      if (!activeBE) {
-        const filterMap = {
-          All: "all",
-          Latest: "latest",
-          Oldest: "oldest",
-          "Top Liked": "topLikes",
-          "Less Liked": "fewestLikes",
-          Popular: "popular",
-          AI: "ai",
-          Company: "company",
-          Human: "human",
-        };
-        const filterParam = filterMap[filter];
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        let url = `${apiUrl}/proposals?filter=${filterParam}`;
-        if (search && search.trim() !== "") {
-          url += `&search=${encodeURIComponent(search.trim())}`;
-        }
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Failed to fetch posts");
-        return res.json();
-      } else {
-        // Fake API with date added for each post (search not supported here)
-        return [
-          {
-            userName: "Sophie Lee",
-            userInitials: "SL",
-            date: new Date(Date.now() - 45 * 60000).toISOString(), // 45 minutes ago
-            title: "Check this out",
-            video: "https://www.youtube.com/embed/ZeerrnuLi5E",
-            likes: [1, 1, 1, 1, 1],
-            dislikes: [2],
-            comments: [
-              {
-                user_img:
-                  "https://t4.ftcdn.net/jpg/03/96/16/79/360_F_396167959_aAhZiGlJoeXOBHivMvaO0Aloxvhg3eVT.jpg",
-                user: "Ethan Black",
-                comment: "Nice find!",
-              },
-              { user: "Fiona Gray", comment: "Thanks for sharing!" },
-              {
-                user_img:
-                  "https://blog.stocksnap.io/content/images/2022/02/smiling-woman_W6GFOSFAXA.jpg",
-                user: "Gray May",
-                comment:
-                  "Thanks for sharing! for sharing! for sharing! for sharing!",
-              },
-            ],
-          },
-          {
-            userName: "Alice Johnson",
-            userInitials: "AJ",
-            date: new Date(Date.now() - 3 * 3600000).toISOString(), // 3 hours ago
-            title: "Excited to share this!",
-            text: "Just finished my latest project, feeling accomplished!",
-            video: "",
-            likes: [23, 23, 23],
-            dislikes: [1],
-            comments: [
-              { user: "Bob Smith", comment: "Amazing work!" },
-              {
-                user_img:
-                  "https://img.freepik.com/free-photo/lifestyle-people-emotions-casual-concept-confident-nice-smiling-asian-woman-cross-arms-chest-confident-ready-help-listening-coworkers-taking-part-conversation_1258-59335.jpg",
-                user: "Clara White",
-                comment: "Congrats!",
-              },
-            ],
-          },
-          {
-            userName: "Michael Brown",
-            userInitials: "MB",
-            date: new Date(Date.now() - 2 * 86400000).toISOString(), // 2 days ago
-            title: "Watch this video!",
-            video:
-              "https://www.youtube.com/watch?v=2iK3ccCsI6s&ab_channel=SMTOWN",
-            likes: [1],
-            dislikes: [1, 3, 4, 2],
-            comments: [{ user: "Diana Green", comment: "Interesting video!" }],
-          },
-          {
-            userName: "Tom Harris",
-            userInitials: "TH",
-            date: new Date(Date.now() - 15 * 86400000).toISOString(), // 15 days ago
-            title: "Random thoughts",
-            text: "It's been a productive day. Feeling motivated to continue learning new skills.",
-            video: "",
-            likes: [2, 3, 2],
-            dislikes: [2, 3, 2, 3],
-            comments: [],
-          },
-          {
-            userName: "Emma Wilson",
-            userInitials: "EW",
-            date: new Date(Date.now() - 45 * 86400000).toISOString(), // 45 days ago
-            title: "Another random post",
-            text: "Sharing some thoughts on productivity and workflow optimization.",
-            likes: [3, 3, 4],
-            dislikes: [],
-            comments: [{ user: "Liam King", comment: "Great insights!" }],
-          },
-        ];
+      let query = supabase
+        .from("proposals")
+        .select(`
+          id,
+          userName,
+          userInitials,
+          time,
+          title,
+          author_img,
+          author_type,
+          media,
+          image,
+          video,
+          link,
+          file,
+          text,
+          likes,
+          dislikes,
+          comments
+        `);
+
+      // Apply filter
+      switch (filter) {
+        case "Latest":
+          query = query.order("time", { ascending: false });
+          break;
+        case "Oldest":
+          query = query.order("time", { ascending: true });
+          break;
+        case "Top Liked":
+          query = query.order("likes", { ascending: false });
+          break;
+        case "Less Liked":
+          query = query.order("likes", { ascending: true });
+          break;
+        case "Popular":
+          query = query.order("comments_count", { ascending: false });
+          break;
+        case "AI":
+        case "Company":
+        case "Human":
+          query = query.eq("author_type", filter.toLowerCase());
+          break;
+        default:
+          query = query.order("time", { ascending: false });
+          break;
       }
+
+      // Apply search filter if present
+      if (search && search.trim() !== "") {
+        query = query.ilike("title", `%${search.trim()}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        setErrorMsg([error.message]);
+        return [];
+      }
+
+      // Ensure JSON fields are arrays or objects
+      return data.map(post => ({
+        ...post,
+        likes: Array.isArray(post.likes) ? post.likes : [],
+        dislikes: Array.isArray(post.dislikes) ? post.dislikes : [],
+        comments: Array.isArray(post.comments) ? post.comments : [],
+        media: post.media || {
+          image: post.image || "",
+          video: post.video || "",
+          link: post.link || "",
+          file: post.file || ""
+        }
+      }));
     },
-    keepPreviousData: true,
+    keepPreviousData: true
   });
+
+  if (error) return <p>Error: {error.message}</p>;
 
   return (
     <div className="mb-50 lg:mb-10 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto mt-5 lg:mt-50 gap-10 justify-center relative">
@@ -156,11 +130,12 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
             <InputFields setDiscard={setDiscard} />
           </div>
         )}
+
         <div className="flex lg:flex-col gap-10 flex-col">
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
           ) : posts && posts.length > 0 ? (
-            posts.map((post, index) => (
+            posts.map(post => (
               <ProposalCard
                 key={post.id}
                 id={post.id}
@@ -170,18 +145,10 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
                 title={post.title}
                 logo={post.author_img}
                 media={{
-                  image: post.media?.image
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.image}`
-                    : post.image
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.image}`
-                    : "",
+                  image: post.media?.image || post.image || "",
                   video: post.media?.video || post.video || "",
                   link: post.media?.link || post.link || "",
-                  file: post.media?.file
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.file}`
-                    : post.file
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.file}`
-                    : "",
+                  file: post.media?.file || post.file || ""
                 }}
                 text={post.text}
                 comments={post.comments}
@@ -197,6 +164,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           )}
         </div>
       </div>
+
       <FilterHeader
         setSearch={setSearch}
         search={search}

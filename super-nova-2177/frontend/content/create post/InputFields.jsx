@@ -4,90 +4,42 @@ import imageCompression from "browser-image-compression";
 import LiquidGlass from "../liquid glass/LiquidGlass";
 import { FaImage, FaVideo } from "react-icons/fa6";
 import { FaLink, FaFileAlt } from "react-icons/fa";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "../profile/UserContext";
 import Error from "../Error";
-import { IoClose } from "react-icons/io5";
 import MediaInput from "./Media";
+import supabase from "../../supabaseClient";
+import { useQueryClient } from "@tanstack/react-query";
 
 function InputFields({ setDiscard }) {
+  const { userData } = useUser();
+  const queryClient = useQueryClient(); // react-query client
+
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [errorMsg, setErrorMsg] = useState([]);
-  const [mediaType, setMediaType] = useState(""); // "image", "video", "link", "file"
+  const [mediaType, setMediaType] = useState("");
   const [mediaValue, setMediaValue] = useState("");
   const [inputValue, setInputValue] = useState("");
-  const [selectedFile, setSelectedFile] = useState("");
-  const { userData } = useUser();
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation({
-    mutationFn: async (newPost) => {
-      const formData = new FormData();
-      formData.append("title", newPost.title || "");
-      formData.append("body", newPost.body || "");
-      formData.append("author", newPost.author || "");
-      formData.append("author_type", newPost.author_type || "");
-      formData.append("author_img", newPost.author_img || "");
-      formData.append("date", newPost.date || "");
-      formData.append("video", newPost.video || "");
-      formData.append("link", newPost.link || "");
-      if ((mediaType === "image" || mediaType === "file") && selectedFile) {
-        if (mediaType === "image") {
-          formData.append("image", selectedFile);
-        } else if (mediaType === "file") {
-          formData.append("file", selectedFile);
-        }
-      }
-
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/proposals`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) throw new Error("Failed to create post");
-      return response.json();
-    },
-    onSuccess: () => queryClient.invalidateQueries(["posts"]),
-  });
-
-  const uploadMediaFile = async (file, type) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const response = await fetch(`${apiUrl}/upload-${type}`, {
-      method: "POST",
-      body: formData,
-    });
-    if (!response.ok) throw new Error(`Failed to upload ${type}`);
-    const data = await response.json();
-    return data.filename || data.url || "";
-  };
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const handleRemoveMedia = () => {
     setMediaType("");
     setMediaValue("");
     setInputValue("");
-    setSelectedFile("");
+    setSelectedFile(null);
   };
 
   const handleFileChange = async (e) => {
     const fileObj = e.target.files && e.target.files[0];
     if (!fileObj) return;
 
-    const options = {
-      maxSizeMB: 1,
-      maxWidthOrHeight: 1024,
-      useWebWorker: true,
-    };
-
+    const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
     try {
       const compressedFile = await imageCompression(fileObj, options);
       setSelectedFile(compressedFile);
       setMediaType("image");
       setMediaValue(compressedFile.name);
-    } catch (error) {
-      console.error("Image compression error:", error);
+    } catch {
       setSelectedFile(fileObj);
       setMediaType("image");
       setMediaValue(fileObj.name);
@@ -98,25 +50,6 @@ function InputFields({ setDiscard }) {
     const fileObj = e.target.files && e.target.files[0];
     if (!fileObj) return;
 
-    // Se for imagem, tenta comprimir
-    if (fileObj.type.startsWith("image/")) {
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1024,
-        useWebWorker: true,
-      };
-      try {
-        const compressedFile = await imageCompression(fileObj, options);
-        setSelectedFile(compressedFile);
-        setMediaType("file");
-        setMediaValue(compressedFile.name);
-        return;
-      } catch (error) {
-        console.error("Image compression error (file upload):", error);
-      }
-    }
-
-    // Se não for imagem ou falhar compressão, mantém original
     setSelectedFile(fileObj);
     setMediaType("file");
     setMediaValue(fileObj.name);
@@ -128,14 +61,94 @@ function InputFields({ setDiscard }) {
     setInputValue("");
   };
 
+    const handlePublishPost = async () => {
+    const errors = [];
+    if (!title.trim()) errors.push("No post Title found.");
+    if (!text.trim() && !mediaValue && !selectedFile) errors.push("No post Media found.");
+    if (!userData?.name) errors.push("Enter username before publishing.");
+    if (!userData?.species) errors.push("Enter specie before publishing.");
+    if (errors.length > 0) {
+      setErrorMsg(errors);
+      return;
+    }
+
+    setErrorMsg([]);
+    try {
+      let uploadedFileUrl = "";
+
+      if (selectedFile) {
+        const fileName = `${Date.now()}_${selectedFile.name}`.replace(/\s/g, "_");
+
+        const { data, error: uploadError } = await supabase.storage
+          .from("proposals")
+          .upload(fileName, selectedFile, { cacheControl: "3600", upsert: true });
+
+        if (uploadError) {
+          setErrorMsg([`Failed to upload file: ${uploadError.message}`]);
+          return;
+        }
+
+        if (!data?.path) {
+          setErrorMsg(["Upload did not return a valid path."]);
+          return;
+        }
+
+        const { publicUrl, error: urlError } = supabase.storage
+          .from("proposals")
+          .getPublicUrl(data.path);
+
+        if (urlError || !publicUrl) {
+          setErrorMsg([`Failed to get public URL for uploaded file.`]);
+          return;
+        }
+
+        uploadedFileUrl = publicUrl;
+      }
+
+      const { data: insertedData, error: insertError } = await supabase
+        .from("proposals")
+        .insert({
+          title,
+          text,
+          userName: userData.name,
+          author_type: userData.species,
+          image: mediaType === "image" ? uploadedFileUrl : "",
+          video: mediaType === "video" ? mediaValue : "",
+          link: mediaType === "link" ? mediaValue : "",
+          file: mediaType === "file" ? uploadedFileUrl : "",
+          media: {
+            image: mediaType === "image" ? uploadedFileUrl : "",
+            file: mediaType === "file" ? uploadedFileUrl : "",
+            video: mediaType === "video" ? mediaValue : "",
+            link: mediaType === "link" ? mediaValue : ""
+          },
+          likes: [],
+          dislikes: [],
+          comments: [],
+          time: new Date().toISOString()
+        })
+        .select();
+
+      if (insertError) throw new Error(`Failed to create post: ${insertError.message}`);
+
+      // Limpar campos
+      setTitle("");
+      setText("");
+      setSelectedFile(null);
+      setMediaType("");
+      setMediaValue("");
+      setDiscard(true);
+
+    } catch (err) {
+      setErrorMsg([err.message]);
+    }
+  };
+
+
   return (
     <div className="fixed z-100 bottom-0 md:top-0 left-0 lg:relative lg:mt-[-70px]">
       {errorMsg.length > 0 && <Error messages={errorMsg} />}
-      <LiquidGlass
-        className={
-          "lg:p-5 h-auto bgGrayDark w-screen lg:w-150 xl:w-200 lg:rounded-[30px]"
-        }
-      >
+      <LiquidGlass className="lg:p-5 h-auto bgGrayDark w-screen lg:w-150 xl:w-200 lg:rounded-[30px]">
         <div className="w-screen pt-30 lg:pt-0 p-5 lg:p-0 m-auto h-screen lg:h-auto lg:w-140 xl:w-190 flex text-[var(--text-black)] flex-col gap-4">
           <h1>Title</h1>
           <input
@@ -155,7 +168,6 @@ function InputFields({ setDiscard }) {
             <MediaInput
               type="image"
               icon={<FaImage className="text-2xl" />}
-              accept="image/*"
               mediaType={mediaType}
               setMediaType={setMediaType}
               mediaValue={mediaValue}
@@ -213,69 +225,7 @@ function InputFields({ setDiscard }) {
           <div className="text-[0.6em] flex gap-3 text-white">
             <button
               className="hover:scale-95 cursor-pointer shadow-[var(--shadow-pink)] bg-[var(--pink)] rounded-full px-3 w-30"
-              onClick={async () => {
-                const errors = [];
-                if (!title) errors.push("No post Title found.");
-                if (!text && !mediaValue) errors.push("No post Media found.");
-                if (!userData.name)
-                  errors.push(
-                    "Enter username in profile settings before publishing."
-                  );
-                if (!userData.species)
-                  errors.push(
-                    "Enter your species in profile settings before publishing."
-                  );
-                if (errors.length > 0) {
-                  setErrorMsg(errors);
-                  return;
-                }
-                setErrorMsg([]);
-
-                // Captura cópias locais do estado
-                const currentSelectedFile = selectedFile;
-                const currentMediaType = mediaType;
-                const currentMediaValue = mediaValue;
-
-                // Faz upload e obtém URL final do backend
-                let uploadedMediaUrl = "";
-                if (
-                  (currentMediaType === "image" ||
-                    currentMediaType === "file") &&
-                  currentSelectedFile
-                ) {
-                  try {
-                    const typeKey =
-                      currentMediaType === "image" ? "image" : "file";
-                    const uploadedData = await uploadMediaFile(
-                      currentSelectedFile,
-                      typeKey
-                    );
-                    uploadedMediaUrl =
-                      uploadedData.url || uploadedData.filename || "";
-                  } catch (uploadError) {
-                    setErrorMsg([`Failed to upload ${currentMediaType} file.`]);
-                    return;
-                  }
-                }
-
-                const newPost = {
-                  title,
-                  body: text,
-                  author: userData.name,
-                  author_type: userData.species,
-                  author_img: userData.avatar, // já é a URL pública
-                  date: new Date().toISOString(),
-                  image: mediaType === "image" ? uploadedMediaUrl : "",
-                  file: mediaType === "file" ? uploadedMediaUrl : "",
-                  video: mediaType === "video" ? mediaValue : "",
-                  link: mediaType === "link" ? mediaValue : "",
-                };
-
-                mutation.mutate(newPost);
-                setDiscard(true);
-
-                handleRemoveMedia();
-              }}
+              onClick={handlePublishPost}
             >
               Publish
             </button>
