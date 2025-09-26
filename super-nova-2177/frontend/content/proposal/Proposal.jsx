@@ -16,7 +16,7 @@ function formatRelativeTime(dateString) {
   const date = new Date(dateString);
   const diffMs = now.getTime() - date.getTime(); // em ms
 
-  if (diffMs < 0) return "now"; 
+  if (diffMs < 0) return "now";
 
   const diffMin = Math.floor(diffMs / 1000 / 60);
   const diffHours = Math.floor(diffMin / 60);
@@ -37,7 +37,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [filter, setFilter] = useState("All");
   const inputRef = useRef(null);
   const [search, setSearch] = useState("");
-  
+
   const { data: posts, isLoading } = useQuery({
     queryKey: ["posts", activeBE, filter, search],
     queryFn: async () => {
@@ -145,8 +145,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
         ];
       }
     },
-    keepPreviousData: true,
-});
+    keepPreviousData: true})
 
   return (
     <div className="mb-50 lg:mb-10 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto mt-5 lg:mt-50 gap-10 justify-center relative">
@@ -202,7 +201,12 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           )}
         </div>
       </div>
-      <FilterHeader setSearch={setSearch} search={search} filter={filter} setFilter={setFilter} />
+      <FilterHeader
+        setSearch={setSearch}
+        search={search}
+        filter={filter}
+        setFilter={setFilter}
+      />
     </div>
   );
 }
