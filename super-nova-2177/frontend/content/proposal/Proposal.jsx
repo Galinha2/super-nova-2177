@@ -145,7 +145,8 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
         ];
       }
     },
-    keepPreviousData: true})
+    keepPreviousData: true,
+  });
 
   return (
     <div className="mb-50 lg:mb-10 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto mt-5 lg:mt-50 gap-10 justify-center relative">
