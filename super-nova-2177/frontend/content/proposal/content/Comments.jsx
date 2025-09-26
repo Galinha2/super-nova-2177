@@ -8,9 +8,7 @@ function Comments({ onClick, commentsNum }) {
   return (
     <div
       className="flex text-[var(--text-black)] bg-[var(--gray)] shadow-md w-fit gap-2 cursor-pointer rounded-full px-1 py-1 items-center justify-between"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
+      onClick={() => {
         setClicked(clicked === "like" ? null : "like");
         if (onClick) onClick();
       }}
@@ -24,12 +22,6 @@ function Comments({ onClick, commentsNum }) {
         className={`flex items-center bg-[var(--transparent-gray)] justify-center gap-1 rounded-full px-2 py-0 h-[30px] w-[30px] cursor-pointer ${
           clicked === "like" ? "" : ""
         }`}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setClicked(clicked === "like" ? null : "like");
-          if (onClick) onClick();
-        }}
       >
         <FaCommentAlt />
       </button>

@@ -7,6 +7,7 @@ import CardLoading from "../CardLoading";
 import { useQuery } from "@tanstack/react-query";
 import FilterHeader from "../filters/FilterHeader";
 import React from "react";
+import Link from "next/link";
 
 function formatRelativeTime(dateString) {
   if (!dateString) return "now";
@@ -15,7 +16,7 @@ function formatRelativeTime(dateString) {
   const date = new Date(dateString);
   const diffMs = now.getTime() - date.getTime(); // em ms
 
-  if (diffMs < 0) return "now";
+  if (diffMs < 0) return "now"; 
 
   const diffMin = Math.floor(diffMs / 1000 / 60);
   const diffHours = Math.floor(diffMin / 60);
@@ -36,7 +37,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [filter, setFilter] = useState("All");
   const inputRef = useRef(null);
   const [search, setSearch] = useState("");
-
+  
   const { data: posts, isLoading } = useQuery({
     queryKey: ["posts", activeBE, filter, search],
     queryFn: async () => {
@@ -145,7 +146,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
       }
     },
     keepPreviousData: true,
-  })
+});
 
   return (
     <div className="mb-50 lg:mb-10 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto mt-5 lg:mt-50 gap-10 justify-center relative">
@@ -164,48 +165,44 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
             Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
           ) : posts && posts.length > 0 ? (
             posts.map((post, index) => (
-              <ProposalCard
-                key={post.id}
-                id={post.id}
-                userName={post.userName}
-                userInitials={post.userInitials}
-                time={formatRelativeTime(post.time)}
-                title={post.title}
-                logo={post.author_img}
-                media={{
-                  image: post.media?.image
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.image}`
-                    : post.image
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.image}`
-                    : "",
-                  video: post.media?.video || post.video || "",
-                  link: post.media?.link || post.link || "",
-                  file: post.media?.file
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.file}`
-                    : post.file
-                    ? `${process.env.NEXT_PUBLIC_API_URL}${post.file}`
-                    : "",
-                }}
-                text={post.text}
-                comments={post.comments}
-                likes={post.likes}
-                dislikes={post.dislikes}
-                setErrorMsg={setErrorMsg}
-                setNotify={setNotify}
-                specie={post.author_type}
-              />
+              <Link href={`/proposals/${post.id}`} key={index}>
+                <ProposalCard
+                  id={post.id}
+                  userName={post.userName}
+                  userInitials={post.userInitials}
+                  time={formatRelativeTime(post.time)}
+                  title={post.title}
+                  logo={post.author_img}
+                  media={{
+                    image: post.media?.image
+                      ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.image}`
+                      : post.image
+                      ? `${process.env.NEXT_PUBLIC_API_URL}${post.image}`
+                      : "",
+                    video: post.media?.video || post.video || "",
+                    link: post.media?.link || post.link || "",
+                    file: post.media?.file
+                      ? `${process.env.NEXT_PUBLIC_API_URL}${post.media.file}`
+                      : post.file
+                      ? `${process.env.NEXT_PUBLIC_API_URL}${post.file}`
+                      : "",
+                  }}
+                  text={post.text}
+                  comments={post.comments}
+                  likes={post.likes}
+                  dislikes={post.dislikes}
+                  setErrorMsg={setErrorMsg}
+                  setNotify={setNotify}
+                  specie={post.author_type}
+                />
+              </Link>
             ))
           ) : (
             <p className="text-center text-gray-500">No Proposals found.</p>
           )}
         </div>
       </div>
-      <FilterHeader
-        setSearch={setSearch}
-        search={search}
-        filter={filter}
-        setFilter={setFilter}
-      />
+      <FilterHeader setSearch={setSearch} search={search} filter={filter} setFilter={setFilter} />
     </div>
   );
 }
