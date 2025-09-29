@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Error from "@/content/Error";
 import Notification from "@/content/Notification";
 import { useState } from "react";
+import AssistantOrb from "@/content/AssistantOrb";
 
 const interTight = Inter_Tight({
   subsets: ["latin"],
@@ -43,6 +44,7 @@ export default function RootLayout({ children }) {
                 errorMsg={errorMsg}
                 setErrorMsg={setErrorMsg}
               />
+              <AssistantOrb />
               {children}
             </ActiveBEProvider>
           </UserProvider>
