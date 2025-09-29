@@ -31,7 +31,7 @@ export default function ProposalClient({ id }) {
   return (
     <div className="lg:mt-30 w-screen items-start justify-center flex">
         <ProposalCard
-        className={"w-screen rounded-[0px]"}
+        className={"md:rounded-[25px] w-screen"}
           id={proposal.id}
           userName={proposal.userName}
           userInitials={proposal.userInitials}

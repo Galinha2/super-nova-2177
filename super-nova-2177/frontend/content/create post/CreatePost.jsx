@@ -13,7 +13,7 @@ function CreatePost({ setDiscard }) {
   return (
     <button
       onClick={handleClick}
-      className="z-999000 lg:z-50 w-fit fixed left-1/2 bottom-5.5 -translate-x-1/2 lg:top-30 lg:bottom-auto flex justify-center items-center group"
+      className="z-9001 w-fit fixed left-1/2 bottom-5.5 -translate-x-1/2 lg:top-30 lg:bottom-auto flex justify-center items-center group"
     >
       <LiquidGlass className="h-12.5 w-12.5 lg:w-fit lg:h-fit cursor-pointer hover:scale-98 rounded-[20px] lg:rounded-full p-0 lg:p-1 flex items-center">
         <LiquidGlass className="text-black opacity-70 rounded-full flex items-center justify-center">

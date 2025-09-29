@@ -31,7 +31,7 @@ export default function RootLayout({ children }) {
   const [errorMsg, setErrorMsg] = useState([]);
   const [notify, setNotify] = useState([]);
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className={`${interTight.variable} flex antialiased`}>
         <QueryClientProvider client={queryClient}>
           {errorMsg.length > 0 && <Error messages={errorMsg} />}

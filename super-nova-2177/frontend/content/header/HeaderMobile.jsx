@@ -16,12 +16,12 @@ function HeaderMobile({
   setErrorMsg,
   setNotify,
 }) {
-  const [showSettings, setShowSettings] = useState(false); // controla visibilidade do Settings
+  const [showSettings, setShowSettings] = useState(false);
   const header = Object.values(content.header.mobiletitles);
 
   const iconsMap = {
     Home: [LuSlack, "Home"],
-    Profile: [FaRegUser, "Profile"],
+    Profile: ["", ""],
     Proposals: [IoBookOutline, "Proposals"],
   };
 
@@ -38,7 +38,7 @@ function HeaderMobile({
 
             return (
               <li
-                className="cursor-pointer rounded-[20px] w-13 h-13 bgGray transform transition-transform duration-300 hover:scale-105 flex flex-col items-center justify-center"
+                className={`ursor-pointer rounded-[20px] w-13 h-13 ${index === 1 ? "" : "bgGray"} transform transition-transform duration-300 hover:scale-105 flex flex-col items-center justify-center`}
                 key={index}
               >
                 <Link
@@ -54,7 +54,7 @@ function HeaderMobile({
               </li>
             );
           })}
-          <li className="cursor-pointer hover:scale-105 rounded-[20px] w-13 h-13 flex items-center bgGray justify-center">
+          <li className={`cursor-pointer hover:scale-105 rounded-[20px] w-13 h-13 flex items-center justify-center bgGray`}>
             {showSettings ? (
               <IoIosClose
                 onClick={() => setShowSettings(false)}
