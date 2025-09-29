@@ -176,18 +176,28 @@ function ProposalCard({
               {media.link}
             </a>
           )}
-          {media.file && (
-            <a
-              href={getFullImageUrl(media.file)}
-              download
-              className="cursor-pointer flex items-center bg-[var(--blue)] text-white shadow-[var(--shadow-blue)] w-fit px-2 py-2 rounded-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <FaFileAlt className="text-[2em]" />
-              <p>Download file</p>
-            </a>
-          )}
         </Link>
+
+        {media.file && (
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(getFullImageUrl(media.file), "_blank");
+            }}
+            className="cursor-pointer flex items-center bg-[var(--blue)] text-white shadow-[var(--shadow-blue)] w-fit px-2 py-2 rounded-full"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                window.open(getFullImageUrl(media.file), "_blank");
+              }
+            }}
+          >
+            <FaFileAlt className="text-[2em]" />
+            <p>Download file</p>
+          </span>
+        )}
 
         <div className="relative flex justify-between w-full">
           <div

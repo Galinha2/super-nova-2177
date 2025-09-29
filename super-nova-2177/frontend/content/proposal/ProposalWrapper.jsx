@@ -9,7 +9,7 @@ export default function ProposalWrapper() {
   const { activeBE, setActiveBE } = useActiveBE();
   const [errorMsg, setErrorMsg] = useState([]);
   const [notify, setNotify] = useState([]);
-
+  console.log(activeBE)
   return (
     <>
       {errorMsg.length > 0 && <Error messages={errorMsg} />}

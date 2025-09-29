@@ -15,16 +15,26 @@ export default function MediaInput({
   handleFileChange,
   handleFileInputChange,
   handleSaveInputMedia,
+  setSelectedFile,
 }) {
   const isActive = mediaType === type;
-  const isDisabled = mediaType && mediaType !== type;
+  const isDisabled = false; // Allow multiple media types to be active simultaneously
   const titleMap = {
-    image: isActive ? "Remove existing image first" : "Insert Image",
+    image: "Insert Image",
     video: "Insert Video",
     link: "Insert Link",
-    file: isActive ? "Remove existing file first" : "Insert File",
+    file: "Insert File",
   };
   const acceptAttr = accept || undefined;
+
+  function handleFileChangeFile(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setMediaValue(file);
+      setMediaType("file");
+    }
+  }
 
   if (isActive && mediaValue) {
     return (
@@ -43,18 +53,16 @@ export default function MediaInput({
   if (type === "image" || type === "file") {
     const inputId = type === "image" ? "imageInput" : "fileInput";
     const onChangeHandler =
-      type === "image" ? handleFileChange : handleFileInputChange;
+      type === "image" ? handleFileChange : handleFileChangeFile;
 
     return (
       <div className="relative group">
         <label
           htmlFor={inputId}
-          className={`bg-white shadow-sm cursor-pointer rounded-full w-10 h-10 flex items-center justify-center ${
-            isDisabled ? "cursor-not-allowed" : ""
-          }`}
+          className={`bg-white shadow-sm cursor-pointer rounded-full w-10 h-10 flex items-center justify-center`}
           title={titleMap[type]}
           onClick={() => {
-            if (!mediaType) setMediaType(type);
+            if (!mediaType || mediaType === type) setMediaType(type);
           }}
         >
           {icon}
@@ -68,10 +76,9 @@ export default function MediaInput({
           accept={acceptAttr}
           className="hidden"
           onChange={(e) => {
-            if (!mediaType || mediaType === type) onChangeHandler(e);
-            e.target.value = "";
+            onChangeHandler(e);
+            // Removed resetting e.target.value to allow multiple file inputs
           }}
-          disabled={isDisabled}
         />
       </div>
     );
@@ -82,13 +89,10 @@ export default function MediaInput({
     <div className="relative group flex items-center gap-1">
       {!isActive ? (
         <button
-          className={`bg-white shadow-sm cursor-pointer rounded-full w-10 h-10 flex items-center justify-center ${
-            isDisabled ? "cursor-not-allowed" : ""
-          }`}
+          className={`bg-white shadow-sm cursor-pointer rounded-full w-10 h-10 flex items-center justify-center`}
           onClick={() => {
-            if (!mediaType) setMediaType(type);
+            if (!mediaType || mediaType !== type) setMediaType(type);
           }}
-          disabled={isDisabled}
           title={titleMap[type]}
         >
           {icon}

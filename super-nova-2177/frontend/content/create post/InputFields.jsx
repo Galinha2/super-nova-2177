@@ -29,11 +29,11 @@ function InputFields({ setDiscard, setPosts, refetchPosts }) {
     setSelectedFile(null);
   };
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = async (e, type) => {
     const fileObj = e.target.files && e.target.files[0];
     if (!fileObj) return;
 
-    if (fileObj.type.startsWith("image/")) {
+    if (type === "image" && fileObj.type.startsWith("image/")) {
       try {
         const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
         const compressedFile = await imageCompression(fileObj, options);
@@ -45,17 +45,32 @@ function InputFields({ setDiscard, setPosts, refetchPosts }) {
         setMediaType("image");
         setMediaValue(fileObj.name);
       }
-    } else {
+    } else if (type === "video" && fileObj.type.startsWith("video/")) {
       setSelectedFile(fileObj);
-      setMediaType("file");
+      setMediaType("video");
       setMediaValue(fileObj.name);
+    } else {
+      // For other types or mismatched file type, do not set media
+      return;
     }
+    // Clear input value to allow re-upload of same file if needed
+    e.target.value = null;
+  };
+
+  const handleFileChangeFile = (e) => {
+    const fileObj = e.target.files && e.target.files[0];
+    if (!fileObj) return;
+    setSelectedFile(fileObj);
+    setMediaType("file");
+    setMediaValue(fileObj.name);
+    e.target.value = null;
   };
 
   const handleFileInputChange = (e) => setInputValue(e.target.value);
-  const handleSaveInputMedia = () => {
+  const handleSaveInputMedia = (type) => {
     if (!inputValue.trim()) return;
     setMediaValue(inputValue.trim());
+    setMediaType(type);
     setInputValue("");
   };
 
@@ -131,9 +146,9 @@ function InputFields({ setDiscard, setPosts, refetchPosts }) {
               inputValue={inputValue}
               setInputValue={setInputValue}
               handleRemoveMedia={handleRemoveMedia}
-              handleFileChange={handleFileChange}
+              handleFileChange={(e) => handleFileChange(e, "image")}
               handleFileInputChange={handleFileInputChange}
-              handleSaveInputMedia={handleSaveInputMedia}
+              handleSaveInputMedia={() => handleSaveInputMedia("image")}
             />
             <MediaInput
               type="video"
@@ -145,9 +160,9 @@ function InputFields({ setDiscard, setPosts, refetchPosts }) {
               inputValue={inputValue}
               setInputValue={setInputValue}
               handleRemoveMedia={handleRemoveMedia}
-              handleFileChange={handleFileChange}
+              handleFileChange={(e) => handleFileChange(e, "video")}
               handleFileInputChange={handleFileInputChange}
-              handleSaveInputMedia={handleSaveInputMedia}
+              handleSaveInputMedia={() => handleSaveInputMedia("video")}
             />
             <MediaInput
               type="link"
@@ -159,9 +174,9 @@ function InputFields({ setDiscard, setPosts, refetchPosts }) {
               inputValue={inputValue}
               setInputValue={setInputValue}
               handleRemoveMedia={handleRemoveMedia}
-              handleFileChange={handleFileChange}
+              handleFileChange={() => {}}
               handleFileInputChange={handleFileInputChange}
-              handleSaveInputMedia={handleSaveInputMedia}
+              handleSaveInputMedia={() => handleSaveInputMedia("link")}
             />
             <MediaInput
               type="file"
@@ -173,9 +188,10 @@ function InputFields({ setDiscard, setPosts, refetchPosts }) {
               inputValue={inputValue}
               setInputValue={setInputValue}
               handleRemoveMedia={handleRemoveMedia}
-              handleFileChange={handleFileChange}
+              handleFileChange={handleFileChangeFile}
               handleFileInputChange={handleFileInputChange}
-              handleSaveInputMedia={handleSaveInputMedia}
+              handleSaveInputMedia={() => handleSaveInputMedia("file")}
+              setSelectedFile={setSelectedFile}
             />
           </div>
           <div className="text-[0.6em] flex gap-3 text-white">
@@ -202,7 +218,7 @@ function InputFields({ setDiscard, setPosts, refetchPosts }) {
                   date: new Date().toISOString(),
                   image: mediaType === "image" ? selectedFile : null,
                   file: mediaType === "file" ? selectedFile : null,
-                  video: mediaType === "video" ? mediaValue : "",
+                  video: mediaType === "video" ? (selectedFile || mediaValue) : "",
                   link: mediaType === "link" ? mediaValue : "",
                 };
 

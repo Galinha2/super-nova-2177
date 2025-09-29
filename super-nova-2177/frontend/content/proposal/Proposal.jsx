@@ -6,6 +6,7 @@ import InputFields from "../create post/InputFields";
 import CardLoading from "../CardLoading";
 import { useQuery } from "@tanstack/react-query";
 import FilterHeader from "../filters/FilterHeader";
+import { generateRandomProposals } from "@/utils/fakeApi";
 
 function formatRelativeTime(dateString) {
   if (!dateString) return "now";
@@ -30,6 +31,10 @@ function formatRelativeTime(dateString) {
   return "now";
 }
 
+function fetchFakeProposals() {
+  return Promise.resolve(generateRandomProposals(5, true));
+}
+
 function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [discard, setDiscard] = useState(true);
   const [filter, setFilter] = useState("All");
@@ -37,28 +42,32 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [search, setSearch] = useState("");
 
   const { data: posts, isLoading, refetch } = useQuery({
-    queryKey: ["proposals", filter, search],
+    queryKey: ["proposals", filter, search, activeBE],
     queryFn: async () => {
-      const filterMap = {
-        All: "all",
-        Latest: "latest",
-        Oldest: "oldest",
-        "Top Liked": "topLikes",
-        "Less Liked": "fewestLikes",
-        Popular: "popular",
-        AI: "ai",
-        Company: "company",
-        Human: "human",
-      };
-      const filterParam = filterMap[filter];
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      let url = `${apiUrl}/proposals?filter=${filterParam}`;
-      if (search && search.trim() !== "") {
-        url += `&search=${encodeURIComponent(search.trim())}`;
+      if (activeBE) {
+        return fetchFakeProposals();
+      } else {
+        const filterMap = {
+          All: "all",
+          Latest: "latest",
+          Oldest: "oldest",
+          "Top Liked": "topLikes",
+          "Less Liked": "fewestLikes",
+          Popular: "popular",
+          AI: "ai",
+          Company: "company",
+          Human: "human",
+        };
+        const filterParam = filterMap[filter];
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+        let url = `${apiUrl}/proposals?filter=${filterParam}`;
+        if (search && search.trim() !== "") {
+          url += `&search=${encodeURIComponent(search.trim())}`;
+        }
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to fetch posts");
+        return res.json();
       }
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch posts");
-      return res.json();
     },
     keepPreviousData: true,
   });
