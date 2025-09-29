@@ -8,6 +8,7 @@ import { FaFileAlt } from "react-icons/fa";
 import { useUser } from "@/content/profile/UserContext";
 import InsertComment from "./InsertComment";
 import { IoMdArrowRoundBack } from "react-icons/io";
+import Link from "next/link";
 
 function ProposalCard({
   id,
@@ -24,7 +25,7 @@ function ProposalCard({
   setErrorMsg,
   setNotify,
   specie,
-  className
+  className,
 }) {
   const [showComments, setShowComments] = useState(false);
   const [localComments, setLocalComments] = useState(comments);
@@ -57,7 +58,11 @@ function ProposalCard({
   };
 
   return (
-    <div className={`p-4 text-[var(--text-black)] ${className ? "" : "rounded-[25px]"} bg-white shadow-md w-100 md:w-130 lg:w-150 xl:w-200 flex flex-col items-center gap-4 ${className}`}>
+    <div
+      className={`p-4 text-[var(--text-black)] ${
+        className ? "" : "rounded-[25px]"
+      } bg-white shadow-md w-100 md:w-130 lg:w-150 xl:w-200 flex flex-col items-center gap-4 ${className}`}
+    >
       <div className="flex justify-between w-full items-center">
         <div className="flex items-center justify-start w-full gap-2">
           {logo ? (
@@ -75,117 +80,166 @@ function ProposalCard({
           <p>-</p>
           <p>{time}</p>
         </div>
-        
-        <p className="bg-[var(--blue)] shadow-[var(--shadow-blue)] text-white rounded-full capitalize px-2">{specie}</p>
+
+        <p
+          className={`${
+            specie === "human" && "bg-[var(--pink)] shadow-[var(--shadow-pink)]"
+          } ${
+            specie === "company" &&
+            "bg-[var(--blue)] shadow-[var(--shadow-blue)]"
+          } ${
+            specie === "ai" && "bg-[var(--blue)] shadow-[var(--shadow-pink)]"
+          } text-white rounded-full capitalize px-2`}
+        >
+          {specie}
+        </p>
       </div>
 
       <div className="flex w-full gap-3 flex-col">
-        <h1 className="text-[1.5em] my-[-10px]">{title}</h1>
+        <Link href={`/proposals/${id}`} className="flex flex-col gap-3">
 
-        {media.image && (
-          <>
-            {!imageLoaded && (
-              <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full">
-                <img src="./spinner.svg" alt="loading" />
-              </div>
-            )}
-            <div
-              className={`rounded-md shadow-sm w-full items-center justify-center flex flex-col ${
-                !imageZoom
-                  ? "bg-[var(--gray)] max-h-150"
-                  : "bg-black fixed w-screen h-screen rounded-[0px] p-5 top-0 left-0 z-9999"
-              }`}
-              onClick={() => setImageZoom(true)}
-            >
-              {setImageZoom && (<IoMdArrowRoundBack
-                className="absolute cursor-pointer top-5 left-5 text-3xl text-white"
+          <h1 className="text-[1.5em] my-[-10px]">{title}</h1>
+
+          {media.image && (
+            <>
+              {!imageLoaded && (
+                <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full">
+                  <img src="./spinner.svg" alt="loading" />
+                </div>
+              )}
+              <div
+                className={`rounded-md shadow-sm w-full items-center justify-center flex flex-col ${
+                  !imageZoom
+                    ? "bg-[var(--gray)] max-h-150"
+                    : "bg-black fixed w-screen h-screen rounded-[0px] p-5 top-0 left-0 z-9999"
+                }`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setImageZoom(false);
+                  e.preventDefault();
+                  setImageZoom(true);
                 }}
-              />)}
-              <img
-                src={getFullImageUrl(media.image)}
-                alt={title}
-                className={`rounded-md shadow-sm max-h-150 w-fit ${
-                  imageLoaded ? "" : "hidden"
-                } ${!imageZoom ? "bg-[var(--gray)] max-h-150" : "bg-black"}`}
-                onLoad={() => setImageLoaded(true)}
-              />
-            </div>
-          </>
-        )}
-
-        {media.video && (
-          <>
-            {!videoLoaded && (
-              <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full">
-                <img src="./spinner.svg" alt="loading" />
+              >
+                {imageZoom && (
+                  <IoMdArrowRoundBack
+                    className="absolute cursor-pointer top-5 left-5 text-3xl text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setImageZoom(false);
+                    }}
+                  />
+                )}
+                <img
+                  src={getFullImageUrl(media.image)}
+                  alt={title}
+                  className={`rounded-md shadow-sm max-h-150 w-fit ${
+                    imageLoaded ? "" : "hidden"
+                  } ${!imageZoom ? "bg-[var(--gray)] max-h-150" : "bg-black"}`}
+                  onLoad={() => setImageLoaded(true)}
+                />
               </div>
-            )}
-            <div
-              className={`rounded-md shadow-sm w-full bg-[var(--gray)] ${
-                videoLoaded ? "" : "hidden"
-              } aspect-video`}
+            </>
+          )}
+          {media.video && (
+            <>
+              {!videoLoaded && (
+                <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full">
+                  <img src="./spinner.svg" alt="loading" />
+                </div>
+              )}
+              <div
+                className={`rounded-md shadow-sm w-full bg-[var(--gray)] ${
+                  videoLoaded ? "" : "hidden"
+                } aspect-video`}
+              >
+                <iframe
+                  src={getEmbedUrl(media.video)}
+                  title="Video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  onLoad={() => setVideoLoaded(true)}
+                  className="w-full h-full rounded-md"
+                ></iframe>
+              </div>
+            </>
+          )}
+          {text && <p className="post-text text-[0.9em] w-full">{text}</p>}
+          {media.link && (
+            <a
+              href={media.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+              onClick={(e) => e.stopPropagation()}
             >
-              <iframe
-                src={getEmbedUrl(media.video)}
-                title="Video"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                onLoad={() => setVideoLoaded(true)}
-                className="w-full h-full rounded-md"
-              ></iframe>
-            </div>
-          </>
-        )}
-
-        {text && <p className="post-text text-[0.9em] w-full">{text}</p>}
-        {media.link && (
-          <a
-            href={media.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 underline"
-          >
-            {media.link}
-          </a>
-        )}
-        {media.file && (
-          <a
-            href={getFullImageUrl(media.file)}
-            download
-            className="cursor-pointer flex items-center bg-[var(--blue)] text-white shadow-[var(--shadow-blue)] w-fit px-2 py-2 rounded-full"
-          >
-            <FaFileAlt className="text-[2em]" />
-            <p>Download file</p>
-          </a>
-        )}
+              {media.link}
+            </a>
+          )}
+          {media.file && (
+            <a
+              href={getFullImageUrl(media.file)}
+              download
+              className="cursor-pointer flex items-center bg-[var(--blue)] text-white shadow-[var(--shadow-blue)] w-fit px-2 py-2 rounded-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <FaFileAlt className="text-[2em]" />
+              <p>Download file</p>
+            </a>
+          )}
+        </Link>
 
         <div className="relative flex justify-between w-full">
-          <LikesDeslikes
-            setErrorMsg={setErrorMsg}
-            initialLikes={likes.length}
-            initialDislikes={dislikes.length}
-            proposalId={id}
-          />
-          <Comments
-            commentsNum={localComments.length}
-            onClick={() => setShowComments(!showComments)}
-            className="mx-auto"
-          />
-          <BookShare />
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            <LikesDeslikes
+              setErrorMsg={setErrorMsg}
+              initialLikes={likes.length}
+              initialDislikes={dislikes.length}
+              proposalId={id}
+            />
+          </div>
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            <Comments
+              commentsNum={localComments.length}
+              onClick={() => setShowComments(!showComments)}
+              className="mx-auto"
+            />
+          </div>
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            <BookShare />
+          </div>
         </div>
 
-        {(showComments || className) ? (
+        {showComments || className ? (
           <div className="flex flex-col gap-2 rounded-[15px] p-2">
-            <InsertComment
-              setErrorMsg={setErrorMsg}
-              setNotify={setNotify}
-              proposalId={id}
-              setLocalComments={setLocalComments}
-            />
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              <InsertComment
+                setErrorMsg={setErrorMsg}
+                setNotify={setNotify}
+                proposalId={id}
+                setLocalComments={setLocalComments}
+              />
+            </div>
             {localComments.map((c, i) => (
               <DisplayComments
                 key={i}
