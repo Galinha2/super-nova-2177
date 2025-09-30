@@ -4,7 +4,7 @@ import { CiSearch } from "react-icons/ci";
 function Input({ setSearch, search }) {
   
   return (
-    <div className="relative w-auto min-w-65 md:min-w-95 lg:min-w-50 lg:w-50">
+    <div className="relative w-65 min-w-65 md:min-w-95 lg:min-w-50 lg:w-50">
       <CiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
       <input
         onChange={(e) => setSearch(e.target.value)}

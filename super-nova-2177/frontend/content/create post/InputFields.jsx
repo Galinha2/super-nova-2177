@@ -10,7 +10,7 @@ import Error from "../Error";
 import MediaInput from "./Media";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-function InputFields({ setDiscard, setPosts, refetchPosts }) {
+function InputFields({ setDiscard, setPosts, refetchPosts, activeBE }) {
   const { userData } = useUser();
   const queryClient = useQueryClient();
 
@@ -76,6 +76,24 @@ function InputFields({ setDiscard, setPosts, refetchPosts }) {
 
   const mutation = useMutation({
     mutationFn: async (newPost) => {
+      if (activeBE) {
+        return Promise.resolve({
+          id: Date.now(),
+          title: newPost.title,
+          text: newPost.text,
+          userName: newPost.userName,
+          author_type: newPost.author_type,
+          author_img: newPost.author_img,
+          date: newPost.date,
+          image: newPost.image ? URL.createObjectURL(newPost.image) : "",
+          file: newPost.file ? URL.createObjectURL(newPost.file) : "",
+          video: newPost.video || "",
+          link: newPost.link || "",
+          comments: [],
+          likes: [],
+          dislikes: [],
+        });
+      }
       const formData = new FormData();
       formData.append("title", newPost.title);
       formData.append("body", newPost.text);

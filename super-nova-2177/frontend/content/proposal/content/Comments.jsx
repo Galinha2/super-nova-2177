@@ -7,7 +7,7 @@ function Comments({ onClick, commentsNum }) {
 
   return (
     <div
-      className="flex text-[var(--text-black)] bg-[var(--gray)] shadow-md w-fit gap-2 cursor-pointer rounded-full px-1 py-1 items-center justify-between"
+      className="flex text-[var(--text-black)] bg-[var(--gray)] shadow-md w-fit gap-2 cursor-pointer rounded-full px-1 pr-2 py-1 items-center justify-between"
       onClick={() => {
         setClicked(clicked === "like" ? null : "like");
         if (onClick) onClick();

@@ -38,7 +38,7 @@ function HeaderMobile({
 
             return (
               <li
-                className={`ursor-pointer rounded-[20px] w-13 h-13 ${index === 1 ? "" : "bgGray"} transform transition-transform duration-300 hover:scale-105 flex flex-col items-center justify-center`}
+                className={`ursor-pointer rounded-[20px] w-13 h-13 bgGray ${index === 1 ? "" : "bgGray"} transform transition-transform duration-300 hover:scale-105 flex flex-col items-center justify-center`}
                 key={index}
               >
                 <Link

@@ -75,7 +75,7 @@ function InsertComment({
 
   return (
     <div className="flex gap-2 items-center justify-start mb-5">
-      <div className="rounded-full bg-[var(--gray)] shadow-sm h-10 w-14 flex items-center justify-center overflow-hidden">
+      <div className="rounded-full bg-[var(--gray)] shadow-sm h-10 w-17 md:w-13 flex items-center justify-center overflow-hidden">
         {userData.avatar && isValidImage(userData.avatar) && !imgError ? (
           <img
             src={userData.avatar}
@@ -99,7 +99,7 @@ function InsertComment({
       <button
         onClick={handlePublish}
         disabled={loading}
-        className="bg-[var(--pink)] text-white px-3 rounded-full h-10 shadow-sm hover:scale-95 cursor-pointer disabled:opacity-50"
+        className="bg-[var(--pink)] text-white px-3 rounded-full h-10 shadow-md hover:scale-95 cursor-pointer disabled:opacity-50"
       >
         {loading ? "Publishing..." : "Publish"}
       </button>

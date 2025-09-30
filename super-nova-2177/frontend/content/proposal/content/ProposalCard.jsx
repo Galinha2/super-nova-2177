@@ -144,8 +144,8 @@ function ProposalCard({
           {media.video && (
             <>
               {!videoLoaded && (
-                <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 w-full">
-                  <img src="./spinner.svg" alt="loading" />
+                <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 md:h-65 lg:h-80 xl:h-100 w-full">
+                  <img src={className ? "../spinner.svg" : "./spinner.svg"} alt="loading" />
                 </div>
               )}
               <div
@@ -212,6 +212,7 @@ function ProposalCard({
               initialLikes={likes.length}
               initialDislikes={dislikes.length}
               proposalId={id}
+              className={className}
             />
           </div>
           <div

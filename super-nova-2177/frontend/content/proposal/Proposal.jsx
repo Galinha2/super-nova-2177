@@ -79,7 +79,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           <CreatePost setDiscard={setDiscard} />
         ) : (
           <div ref={inputRef}>
-            <InputFields setDiscard={setDiscard} refetch={refetch} />
+            <InputFields activeBE={activeBE} setDiscard={setDiscard} refetch={refetch} />
           </div>
         )}
         <div className="flex lg:flex-col gap-10 flex-col">

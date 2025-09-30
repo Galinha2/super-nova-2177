@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import ProposalCard from "@/content/proposal/content/ProposalCard";
+import Loading from "@/app/loading";
 
 export default function ProposalClient({ id }) {
   const [proposal, setProposal] = useState(null);
@@ -24,7 +25,7 @@ export default function ProposalClient({ id }) {
     fetchProposal();
   }, [id]);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <Loading />;
   if (error) return <p className="text-red-600">Error: {error}</p>;
   if (!proposal) return <p>No proposal found.</p>;
 

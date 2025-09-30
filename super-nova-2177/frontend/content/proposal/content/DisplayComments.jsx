@@ -27,7 +27,7 @@ function DisplayComments({ comment, name, image }) {
         />
       ) : (
         <div className="flex items-center justify-center rounded-full bg-[var(--gray)] w-10 shadow-sm p-2">
-          <p>{initials}</p>
+          <p className={`${initials.length === 1 && "px-5"}`}>{initials}</p>
         </div>
       )}
 

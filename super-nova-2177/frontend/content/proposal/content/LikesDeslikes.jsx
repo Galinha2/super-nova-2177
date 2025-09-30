@@ -11,6 +11,7 @@ function LikesDeslikes({
   initialDislikes,
   proposalId,
   setErrorMsg,
+  className
 }) {
   const [clicked, setClicked] = useState(null);
   const [likes, setLikes] = useState(initialLikes);
@@ -144,7 +145,7 @@ function LikesDeslikes({
           />
         )}
       </div>
-      <div className="absolute -top-45 md:-top-45 lg:-top-45 xl:-top-45">
+      <div className={`absolute ${className ? "-top-[-45px]" : "-top-45 md:-top-45 lg:-top-45 xl:-top-45"}`}>
         {action ? (
           <LikesInfo
             proposalId={proposalId}

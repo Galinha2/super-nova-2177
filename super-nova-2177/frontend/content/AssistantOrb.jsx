@@ -2,11 +2,9 @@
 import { useState, useRef, useEffect } from "react";
 import { RiVoiceAiFill } from "react-icons/ri";
 import { MdKeyboardVoice } from "react-icons/md";
-import LiquidGlass from "./liquid glass/LiquidGlass copy";
 import { IoChatbox } from "react-icons/io5";
 import { AiFillLike } from "react-icons/ai";
 import { RiEdit2Fill } from "react-icons/ri";
-
 
 export default function AssistantOrb() {
   const orbRef = useRef(null);
@@ -19,25 +17,37 @@ export default function AssistantOrb() {
   const popupTimeoutRef = useRef(null);
   let recognitionRef = useRef(null);
 
-  // initial position
+  // posição inicial
   useEffect(() => {
     setPos({ x: window.innerWidth - 90, y: window.innerHeight - 90 });
   }, []);
 
-  // drag orb
+  // drag PC + telemóvel
   useEffect(() => {
     function handleMove(e) {
       if (!dragging) return;
       setPos({ x: e.clientX - 40, y: e.clientY - 40 });
     }
+    function handleTouchMove(e) {
+      if (!dragging) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      setPos({ x: touch.clientX - 40, y: touch.clientY - 40 });
+    }
     function handleUp() {
       setDragging(false);
     }
+
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleUp);
+
     return () => {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleUp);
     };
   }, [dragging]);
 
@@ -47,39 +57,35 @@ export default function AssistantOrb() {
 
   function simulateSpeak(text) {
     setPopup(text);
-    if (popupTimeoutRef.current) {
-      clearTimeout(popupTimeoutRef.current);
-    }
+    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
     popupTimeoutRef.current = setTimeout(() => {
       setPopup(null);
       popupTimeoutRef.current = null;
     }, 5000);
   }
 
-  // start voice recognition
   function startListening() {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      simulateSpeak("Your browser does not support speech recognition");
+      simulateSpeak("O teu navegador não suporta reconhecimento de voz");
       return;
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = "pt-PT"; // you can change to "en-US", etc.
+    recognition.lang = "pt-PT";
     recognition.interimResults = false;
     recognition.continuous = false;
 
     recognition.onstart = () => {
       setListening(true);
-      simulateSpeak("🎙️ Listening...");
+      simulateSpeak("🎙️ A ouvir...");
     };
 
     recognition.onresult = async (event) => {
       const transcript = event.results[0][0].transcript;
-      simulateSpeak("You said: " + transcript);
+      simulateSpeak("Disseste: " + transcript);
 
-      // here you can add logic for the assistant to respond
       try {
         const response = await fetch("/api/ai", {
           method: "POST",
@@ -88,13 +94,13 @@ export default function AssistantOrb() {
         });
         const data = await response.json();
         simulateSpeak("🤖 " + data.reply);
-      } catch (err) {
-        simulateSpeak("Error getting AI response");
+      } catch {
+        simulateSpeak("Erro ao obter resposta do AI");
       }
     };
 
     recognition.onerror = () => {
-      simulateSpeak("Speech recognition error");
+      simulateSpeak("Erro no reconhecimento de voz");
       setListening(false);
     };
 
@@ -116,7 +122,7 @@ export default function AssistantOrb() {
     if (window.innerWidth < 1024) {
       return { left: pos.x - 170, top: pos.y - 70 };
     } else {
-      return { right: 130, top: pos.y - 0 };
+      return { right: 130, top: pos.y };
     }
   })();
 
@@ -127,49 +133,33 @@ export default function AssistantOrb() {
         onClick={toggleMenu}
         onDoubleClick={listening ? stopListening : startListening}
         onMouseDown={() => setDragging(true)}
+        onTouchStart={() => setDragging(true)}
         className={`items-center justify-center flex fixed rounded-full w-15 h-15 shadow-l z-[1000] cursor-${dragging ? "grabbing" : "grab"} ${
           listening
             ? "bg-[var(--pink)] shadow-[var(--shadow-pink)] animate-pulse"
             : "bg-white shadow-sm"
         }`}
-        style={{ top: undefined, bottom: undefined }}
+        style={{
+          left: pos.x,
+          top: pos.y,
+          position: "fixed",
+        }}
       >
-        {listening ? (< MdKeyboardVoice className="text-4xl text-white" />) : ( <RiVoiceAiFill className="text-4xl"/>)}
+        {listening ? (
+          <MdKeyboardVoice className="text-4xl text-white" />
+        ) : (
+          <RiVoiceAiFill className="text-4xl" />
+        )}
       </button>
-
-      <style jsx>{`
-        button {
-          left: ${pos.x}px;
-        }
-        @media (min-width: 1024px) {
-          button {
-            top: ${pos.y}px;
-            bottom: auto;
-            left: auto;
-            right: 60px;
-          }
-        }
-        @media (max-width: 1023px) {
-          button {
-            bottom: 100px;
-            top: auto;
-          }
-          orb {
-            bottom: 140px;
-            top: auto;
-            right: 20px;
-          }
-        }
-      `}</style>
 
       {menuOpen && (
         <div
           className="orb fixed bg-white shadow-sm bg-opacity-70 p-2.5 rounded-[20px] flex gap-2.5 z-[1001]"
           style={menuStyle}
         >
-          <button onClick={() => simulateSpeak("Opening chat...")} className={btnClass}><IoChatbox/></button>
-          <button onClick={() => simulateSpeak("Reacting to this post...")} className={btnClass}><AiFillLike/></button>
-          <button onClick={() => simulateSpeak("Commenting on this post...")} className={btnClass}><RiEdit2Fill/></button>
+          <button onClick={() => simulateSpeak("Abrindo chat...")} className={btnClass}><IoChatbox/></button>
+          <button onClick={() => simulateSpeak("A reagir a este post...")} className={btnClass}><AiFillLike/></button>
+          <button onClick={() => simulateSpeak("A comentar este post...")} className={btnClass}><RiEdit2Fill/></button>
         </div>
       )}
 
