@@ -296,24 +296,32 @@ async def create_proposal(
         )
 
 
-@app.get(
-    "/proposals",
-    response_model=List[Proposal],
-    summary="List proposals with optional filters",
-    description="List proposals with optional filtering and sorting. Use the 'filter' query parameter to control the results."
-)
+from sqlalchemy import or_, func, cast, DateTime, desc, asc
+
+@app.get("/proposals", response_model=List[Proposal], summary="List proposals with optional filters")
 def list_proposals(
     filter: str = Query(
         "all",
         description="Filter proposals by type or sorting. Supported values: 'all', 'latest', 'oldest', 'topLikes', 'fewestLikes', 'ai', 'company', 'human', 'popular'.",
         enum=["all", "latest", "oldest", "topLikes", "fewestLikes", "ai", "company", "human", "popular"]
-    )
+    ),
+    search: Optional[str] = Query(None, description="Search by title or body")
 ):
     from datetime import datetime, timedelta
     with engine.connect() as conn:
         stmt = select(proposals)
 
-        # FILTERS
+        # aplicar search (antes de order_by para evitar conflitos com joins)
+        if search and search.strip() != "":
+            stmt = stmt.where(
+                or_(
+                    proposals.c.title.ilike(f"%{search}%"),
+                    proposals.c.body.ilike(f"%{search}%"),
+                    proposals.c.author.ilike(f"%{search}%")
+                )
+            )
+
+        # aplicar filtros de tipo
         if filter == "latest":
             stmt = stmt.order_by(desc(proposals.c.date))
         elif filter == "oldest":
@@ -331,7 +339,6 @@ def list_proposals(
             ).where(votes.c.choice == "up").group_by(votes.c.proposal_id).subquery()
             stmt = stmt.join(vote_count, proposals.c.id == vote_count.c.proposal_id).order_by(asc(vote_count.c.likes))
         elif filter == "popular":
-            # Proposals from the last 24h ordered by number of likes descending
             now = datetime.utcnow()
             since = now - timedelta(hours=24)
             stmt = stmt.where(cast(proposals.c.date, DateTime) >= since)
@@ -339,19 +346,17 @@ def list_proposals(
                 votes.c.proposal_id,
                 func.count().label("likes")
             ).where(votes.c.choice == "up").group_by(votes.c.proposal_id).subquery()
-            # Use func.coalesce to avoid null in ordering (Postgres error)
             stmt = stmt.outerjoin(vote_count, proposals.c.id == vote_count.c.proposal_id).order_by(desc(func.coalesce(vote_count.c.likes, 0)))
         elif filter in ["ai", "company", "human"]:
-            # Filter strictly by proposals.author_type
             stmt = stmt.where(proposals.c.author_type == filter).order_by(desc(proposals.c.id))
-        else:  # "all" or invalid
+        else:  # "all"
             stmt = stmt.order_by(desc(proposals.c.id))
 
         try:
             result = conn.execute(stmt)
         except Exception as e:
-            # Return a generic error message in English
             raise HTTPException(status_code=500, detail=f"Failed to fetch proposals: {str(e)}")
+
         proposals_list = []
         for row in result.fetchall():
             vote_stmt = select(votes).where(votes.c.proposal_id == row.id)
@@ -384,6 +389,7 @@ def list_proposals(
                     "file": f"/uploads/{row.file}" if row.file else ""
                 }
             })
+
         return proposals_list
 
 @app.get("/proposals/{pid}/tally", summary="Get vote tally for a proposal")

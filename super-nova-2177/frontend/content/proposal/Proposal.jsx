@@ -41,7 +41,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const inputRef = useRef(null);
   const [search, setSearch] = useState("");
 
-  const { data: posts, isLoading, refetch } = useQuery({
+  const { data: posts, isLoading } = useQuery({
     queryKey: ["proposals", filter, search, activeBE],
     queryFn: async () => {
       if (activeBE) {
@@ -73,13 +73,13 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   });
 
   return (
-    <div className="mb-50 lg:mb-10 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto mt-5 lg:mt-50 gap-10 justify-center relative">
+    <div className="mb-50 mt-20 lg:mb-10 xl:mx-auto lg:mr-80 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto lg:mt-50  gap-10 justify-center relative">
       <div className="flex flex-col gap-10">
         {discard ? (
           <CreatePost setDiscard={setDiscard} />
         ) : (
           <div ref={inputRef}>
-            <InputFields activeBE={activeBE} setDiscard={setDiscard} refetch={refetch} />
+            <InputFields activeBE={activeBE} setDiscard={setDiscard} />
           </div>
         )}
         <div className="flex lg:flex-col gap-10 flex-col">
