@@ -71,7 +71,7 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
 }
 
   return (
-    <div className="text-[var(--text-black)]">
+    <div className="text-[var(--text-black)] bgWhiteTrue shadow-md p-2 rounded-[20px]">
       <div className="fixed right-0 bottom-0">
       </div>
       <h1>{settings.profile}</h1>
@@ -90,7 +90,7 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
                 }`}
               >
                 <div
-                  className={`text-[0.8em] bg-white text-[var(--text-black)] rounded-full w-10 h-10 shadow-sm flex items-center justify-center`}
+                  className={`text-[0.8em] bg-white text-[var(--text-black)] rounded-full w-8 h-8 md:w-10 md:h-10 shadow-sm flex items-center justify-center`}
                 >
                   <span>{typeIcons[key]}</span>
                 </div>
@@ -137,7 +137,7 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
           <div>
             <h1>{settings.name}</h1>
             <input
-              className="bgWhite rounded-full h-10 text-[0.7em] px-5 w-70"
+              className="bgWhite rounded-full h-10 text-[0.7em] px-5 w-63 md:w-70"
               type="text"
               value={getName}
               onChange={(e) => setGetName(e.target.value)}

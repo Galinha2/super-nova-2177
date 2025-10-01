@@ -166,6 +166,7 @@ function ProposalCard({
             </>
           )}
           {text && <p className="post-text text-[0.9em] w-full">{text}</p>}
+          </Link>
           {media.link && (
             <a
               href={media.link}
@@ -177,7 +178,6 @@ function ProposalCard({
               {media.link}
             </a>
           )}
-        </Link>
 
         {media.file && (
           <span

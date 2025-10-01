@@ -116,6 +116,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
                 setErrorMsg={setErrorMsg}
                 setNotify={setNotify}
                 specie={post.author_type}
+                activeBE={activeBE}
               />
             ))
           ) : (

@@ -17,7 +17,7 @@ export function generateRandomProposals(count = 5, activeBE = false) {
     ];
 
     const sampleMedia = [
-        { type: "image", url: "https://picsum.photos/400/200" },
+        
         { type: "video", url: "https://www.youtube.com/watch?v=jWQx2f-CErU&pp=ygUSYXN0YSBtdXNpY2Ega29yZWFu" },
         { type: "video", url: "https://www.youtube.com/watch?v=ZeerrnuLi5E&pp=ygUTYWVzcGEgbXVzaWNhIGtvcmVhbg%3D%3D" },
         { type: "link", url: "https://example.com" },
@@ -44,10 +44,9 @@ export function generateRandomProposals(count = 5, activeBE = false) {
             userInitials: user.initials,
             author_type: user.type,
             title: sampleTitles[Math.floor(Math.random() * sampleTitles.length)],
-            text: media ? "" : "This is a text-only post for proposal " + (i + 1),
+            text: media ? "" : "This is a text-only post for proposal. It contains no images, videos, or external links, but it serves as a clear example of how a proposal can be shared in a simple written format. The goal is to demonstrate that even without multimedia content, a proposal can still provide meaningful context, ideas, or instructions. Text-only proposals are often used to communicate concepts, suggestions, or improvements that don’t require visual support, making them lightweight, direct, and easy to read. " + (i + 1),
             media: media
                 ? {
-                    image: media.type === "image" ? media.url : null,
                     video: media.type === "video" ? media.url : null,
                     link: media.type === "link" ? media.url : null,
                     file: media.type === "file" ? media.url : null,

@@ -10,6 +10,7 @@ export default function AssistantOrb() {
   const orbRef = useRef(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+  const [dragged, setDragged] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [popup, setPopup] = useState(null);
   const [listening, setListening] = useState(false);
@@ -17,23 +18,30 @@ export default function AssistantOrb() {
   const popupTimeoutRef = useRef(null);
   let recognitionRef = useRef(null);
 
-  // posição inicial
   useEffect(() => {
-    setPos({ x: window.innerWidth - 90, y: window.innerHeight - 90 });
-  }, []);
+  const width = window.innerWidth;
+  if (width < 1024) {
+    setPos({ x: width - 70, y: window.innerHeight - 160 });
+  } else {
+    setPos({ x: width - 90, y: window.innerHeight - 90 });
+  }
+}, []);
 
-  // drag PC + telemóvel
   useEffect(() => {
     function handleMove(e) {
       if (!dragging) return;
+      setDragged(true);
       setPos({ x: e.clientX - 40, y: e.clientY - 40 });
     }
+
     function handleTouchMove(e) {
       if (!dragging) return;
       e.preventDefault();
       const touch = e.touches[0];
+      setDragged(true);
       setPos({ x: touch.clientX - 40, y: touch.clientY - 40 });
     }
+
     function handleUp() {
       setDragging(false);
     }
@@ -55,6 +63,17 @@ export default function AssistantOrb() {
     setMenuOpen(v => !v);
   }
 
+  function handleMouseDown() {
+    setDragging(true);
+    setDragged(false); // reset para novo drag
+  }
+
+  function handleClick() {
+    if (!dragged) {
+      toggleMenu(); 
+    }
+  }
+
   function simulateSpeak(text) {
     setPopup(text);
     if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
@@ -68,7 +87,7 @@ export default function AssistantOrb() {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      simulateSpeak("O teu navegador não suporta reconhecimento de voz");
+      simulateSpeak("Your browser does not support voice recognition");
       return;
     }
 
@@ -79,12 +98,12 @@ export default function AssistantOrb() {
 
     recognition.onstart = () => {
       setListening(true);
-      simulateSpeak("🎙️ A ouvir...");
+      simulateSpeak("🎙️ Listening...");
     };
 
     recognition.onresult = async (event) => {
       const transcript = event.results[0][0].transcript;
-      simulateSpeak("Disseste: " + transcript);
+      simulateSpeak("You said: " + transcript);
 
       try {
         const response = await fetch("/api/ai", {
@@ -95,12 +114,12 @@ export default function AssistantOrb() {
         const data = await response.json();
         simulateSpeak("🤖 " + data.reply);
       } catch {
-        simulateSpeak("Erro ao obter resposta do AI");
+        simulateSpeak("Error getting AI response");
       }
     };
 
     recognition.onerror = () => {
-      simulateSpeak("Erro no reconhecimento de voz");
+      simulateSpeak("Voice recognition error");
       setListening(false);
     };
 
@@ -127,23 +146,23 @@ export default function AssistantOrb() {
   })();
 
   return (
-    <>
+    <div className="fixed flex z-999999"
+      style={{
+        left: pos.x,
+        top: pos.y,
+        position: "fixed",
+      }}>
       <button
         ref={orbRef}
-        onClick={toggleMenu}
+        onClick={handleClick}
         onDoubleClick={listening ? stopListening : startListening}
-        onMouseDown={() => setDragging(true)}
-        onTouchStart={() => setDragging(true)}
-        className={`items-center justify-center flex fixed rounded-full w-15 h-15 shadow-l z-[1000] cursor-${dragging ? "grabbing" : "grab"} ${
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleMouseDown}
+        className={`items-center justify-center flex rounded-full w-15 h-15 shadow-l z-[1000] cursor-${dragging ? "grabbing" : "grab"} ${
           listening
             ? "bg-[var(--pink)] shadow-[var(--shadow-pink)] animate-pulse"
             : "bg-white shadow-sm"
         }`}
-        style={{
-          left: pos.x,
-          top: pos.y,
-          position: "fixed",
-        }}
       >
         {listening ? (
           <MdKeyboardVoice className="text-4xl text-white" />
@@ -154,12 +173,12 @@ export default function AssistantOrb() {
 
       {menuOpen && (
         <div
-          className="orb fixed bg-white shadow-sm bg-opacity-70 p-2.5 rounded-[20px] flex gap-2.5 z-[1001]"
+          className="orb bg-white ml-[-230px] shadow-sm bg-opacity-70 p-2.5 rounded-[20px] flex gap-2.5 z-[1001]"
           style={menuStyle}
         >
-          <button onClick={() => simulateSpeak("Abrindo chat...")} className={btnClass}><IoChatbox/></button>
-          <button onClick={() => simulateSpeak("A reagir a este post...")} className={btnClass}><AiFillLike/></button>
-          <button onClick={() => simulateSpeak("A comentar este post...")} className={btnClass}><RiEdit2Fill/></button>
+          <button onClick={() => simulateSpeak("Opening chat...")} className={btnClass}><IoChatbox/></button>
+          <button onClick={() => simulateSpeak("Reacting to this post...")} className={btnClass}><AiFillLike/></button>
+          <button onClick={() => simulateSpeak("Commenting on this post...")} className={btnClass}><RiEdit2Fill/></button>
         </div>
       )}
 
@@ -170,7 +189,7 @@ export default function AssistantOrb() {
           {popup}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
