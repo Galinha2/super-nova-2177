@@ -160,14 +160,14 @@ export default function AssistantOrb() {
         onTouchStart={handleMouseDown}
         className={`items-center justify-center flex rounded-full w-15 h-15 shadow-l z-[1000] cursor-${dragging ? "grabbing" : "grab"} ${
           listening
-            ? "bg-[var(--pink)] shadow-[var(--shadow-pink)] animate-pulse"
+            ? "bg-white rounded-full listening-border"
             : "bg-white shadow-sm"
         }`}
       >
         {listening ? (
-          <MdKeyboardVoice className="text-4xl text-white" />
+          <MdKeyboardVoice className="text-4xl animate-pulse" />
         ) : (
-          <RiVoiceAiFill className="text-4xl" />
+          <RiVoiceAiFill className="aiShadow text-[var(--transparent-white)] text-4xl" />
         )}
       </button>
 
