@@ -180,7 +180,7 @@ export default function AssistantOrb() {
           <button onClick={() => simulateSpeak("Reacting to this post...")} className={btnClass}><AiFillLike/></button>
           <button onClick={() => simulateSpeak("Commenting on this post...")} className={btnClass}><RiEdit2Fill/></button>
         </div>
-      )}
+      )}   
 
       {popup && (
         <div
