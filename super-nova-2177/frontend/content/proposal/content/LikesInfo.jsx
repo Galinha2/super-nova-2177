@@ -4,6 +4,7 @@ import LiquidGlass from '@/content/liquid glass/LiquidGlass';
 import { BiSolidLike, BiSolidDislike } from 'react-icons/bi';
 import { FaUser, FaBriefcase } from 'react-icons/fa';
 import { BsFillCpuFill } from 'react-icons/bs';
+import supabase from "@/lib/supabaseClient";
 
 function LikeSection({ icon: Icon, label, likes, dislikes }) {
   return (
@@ -33,13 +34,17 @@ function LikesInfo({ proposalId }) {
   useEffect(() => {
     async function fetchVotes() {
       try {
-        const res = await fetch(`http://localhost:8000/proposals`);
-        const data = await res.json();
-        const proposal = data.find(p => p.id === proposalId);
-        if (proposal) {
-          setLikes(proposal.likes || []);
-          setDislikes(proposal.dislikes || []);
+        const { data, error } = await supabase
+          .from("proposals")
+          .select("likes, dislikes")
+          .eq("id", Number(proposalId))
+          .single();
+        if (error) {
+          console.error("Failed to fetch likes/dislikes from Supabase:", error);
+          return;
         }
+        setLikes(data?.likes || []);
+        setDislikes(data?.dislikes || []);
       } catch (err) {
         console.error("Failed to fetch likes/dislikes:", err);
       }

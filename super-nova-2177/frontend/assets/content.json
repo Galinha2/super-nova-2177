@@ -30,7 +30,6 @@
   },
   "filters": {
     "all": "All",
-    "Popular": "Popular",
     "latest": "Latest",
     "oldest": "Oldest",
     "topLikes": "Top Liked",

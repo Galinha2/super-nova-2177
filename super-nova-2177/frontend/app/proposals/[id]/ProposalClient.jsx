@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import supabase from "@/lib/supabaseClient";
 import ProposalCard from "@/content/proposal/content/ProposalCard";
 import Loading from "@/app/loading";
 
@@ -11,10 +12,12 @@ export default function ProposalClient({ id }) {
   useEffect(() => {
     async function fetchProposal() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        const res = await fetch(`${apiUrl}/proposals/${id}`);
-        if (!res.ok) throw new Error("Failed to fetch proposal");
-        const data = await res.json();
+        const { data, error } = await supabase
+          .from("proposals")
+          .select("*")
+          .eq("id", id)
+          .single();
+        if (error) throw new Error(error.message);
         setProposal(data);
       } catch (err) {
         setError(err.message);

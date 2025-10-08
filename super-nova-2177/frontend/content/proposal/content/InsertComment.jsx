@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useUser } from "@/content/profile/UserContext";
+import supabase from "@/lib/supabaseClient";
 
 function InsertComment({
   proposalId,
@@ -24,10 +25,10 @@ function InsertComment({
 
     if (errors.length > 0) {
       setErrorMsg(errors);
-      return; // interrompe antes de enviar
+      return; // stop before sending
     }
 
-    // só aqui se faz o fetch
+    // only here the update in supabase is done
     let avatar = defaultAvatar || userData.initials;
     if (userData.avatar && isValidImage(userData.avatar)) {
       avatar = userData.avatar;
@@ -35,27 +36,20 @@ function InsertComment({
 
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          proposal_id: Number(proposalId),
-          user: userData.name,
-          user_img: avatar,
-          comment: comment.trim(),
-        }),
-      });
+      // Fetch current comments array from the proposals table
+      const { data, error: fetchError } = await supabase
+        .from("proposals")
+        .select("comments")
+        .eq("id", Number(proposalId))
+        .single();
 
-      if (!res.ok) {
-        const errorBody = await res.text();
-        setErrorMsg([
-          `Failed to post comment: ${res.status} ${res.statusText} - ${errorBody}`,
-        ]);
+      if (fetchError) {
+        setErrorMsg([`Failed to fetch comments: ${fetchError.message}`]);
+        setLoading(false);
         return;
       }
 
-      setNotify(["Comment Submitted"]);
-      setComment("");
+      const currentComments = data?.comments || [];
 
       const newComment = {
         proposal_id: Number(proposalId),
@@ -63,7 +57,24 @@ function InsertComment({
         user_img: avatar,
         comment: comment.trim(),
       };
-      setLocalComments((prevComments) => [...prevComments, newComment]);
+
+      const updatedComments = [...currentComments, newComment];
+
+      // Update the comments JSON field in proposals table
+      const { error: updateError } = await supabase
+        .from("proposals")
+        .update({ comments: updatedComments })
+        .eq("id", Number(proposalId));
+
+      if (updateError) {
+        setErrorMsg([`Failed to post comment: ${updateError.message}`]);
+        setLoading(false);
+        return;
+      }
+
+      setNotify(["Comment Submitted"]);
+      setComment("");
+      setLocalComments(updatedComments);
     } catch (err) {
       setErrorMsg([`Error sending comment: ${err.message}`]);
     } finally {

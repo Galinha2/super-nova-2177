@@ -34,12 +34,16 @@ function InputFields({ setDiscard }) {
     if (!fileObj) return;
 
     const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
+
     try {
-      const compressedFile = await imageCompression(fileObj, options);
+      const compressedBlob = await imageCompression(fileObj, options);
+      const compressedFile = new File([compressedBlob], fileObj.name, { type: fileObj.type });
+
       setSelectedFile(compressedFile);
       setMediaType("image");
       setMediaValue(compressedFile.name);
-    } catch {
+    } catch (err) {
+      console.error("Erro a comprimir imagem:", err);
       setSelectedFile(fileObj);
       setMediaType("image");
       setMediaValue(fileObj.name);
@@ -62,86 +66,101 @@ function InputFields({ setDiscard }) {
   };
 
   const handlePublishPost = async () => {
-    const errors = [];
-    if (!title.trim()) errors.push("No post Title found.");
-    if (!text.trim() && !mediaValue && !selectedFile) errors.push("No post Media found.");
-    if (!userData?.name) errors.push("Enter username before publishing.");
-    if (!userData?.species) errors.push("Enter specie before publishing.");
-    if (errors.length > 0) {
-      setErrorMsg(errors);
-      return;
-    }
+  const errors = [];
+  if (!title.trim()) errors.push("No post Title found.");
+  if (!text.trim() && !mediaValue && !selectedFile) errors.push("No post Media found.");
+  if (!userData?.name) errors.push("Enter username before publishing.");
+  if (!userData?.species) errors.push("Enter specie before publishing.");
+  if (errors.length > 0) {
+    setErrorMsg(errors);
+    return;
+  }
 
-    setErrorMsg([]);
-    try {
-      let uploadedFileUrl = "";
+  setErrorMsg([]);
 
-      if (selectedFile) {
-        const fileName = `${Date.now()}_${selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  try {
+    let uploadedFileUrl = "";
 
-        const { data, error: uploadError } = await supabase.storage
-          .from("proposals")
-          .upload(fileName, selectedFile, { cacheControl: "3600", upsert: true });
+    // Upload de ficheiro (imagem ou outro)
+    if (selectedFile) {
+      const fileName = `${Date.now()}_${selectedFile.name
+        .replace(/[^a-zA-Z0-9._-]/g, "_")
+        .replace(/^_+/, "")}`;
 
-        if (uploadError) {
-          setErrorMsg([`Failed to upload file: ${uploadError.message}`]);
-          return;
-        }
+      const { data, error: uploadError } = await supabase.storage
+        .from("proposals")
+        .upload(fileName, selectedFile, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: selectedFile.type || "image/jpeg"
+        });
 
-        if (!data?.path) {
-          setErrorMsg(["Upload did not return a valid path."]);
-          return;
-        }
-
-        const { publicUrl, error: urlError } = supabase.storage
-          .from("proposals")
-          .getPublicUrl(data.path);
-
-        if (urlError || !publicUrl) {
-          setErrorMsg([`Failed to get public URL for uploaded file.`]);
-          return;
-        }
-
-        uploadedFileUrl = publicUrl;
+      if (uploadError) {
+        console.error("Erro no upload:", uploadError);
+        setErrorMsg([`Failed to upload file: ${uploadError.message}`]);
+        return;
       }
 
-      const { data: insertedData, error: insertError } = await supabase
-        .from("proposals")
-        .insert({
-          title,
-          text,
-          userName: userData.name,
-          author_type: userData.species,
-          image: mediaType === "image" ? uploadedFileUrl : "",
-          video: mediaType === "video" ? mediaValue : "",
-          link: mediaType === "link" ? mediaValue : "",
-          file: mediaType === "file" ? uploadedFileUrl : "",
-          media: {
-            image: mediaType === "image" ? uploadedFileUrl : "",
-            file: mediaType === "file" ? uploadedFileUrl : "",
-            video: mediaType === "video" ? mediaValue : "",
-            link: mediaType === "link" ? mediaValue : ""
-          },
-          likes: [],
-          dislikes: [],
-          comments: [],
-          time: new Date().toISOString()
-        })
-        .select();
+      const { data: urlData } = supabase.storage.from("proposals").getPublicUrl(fileName);
+      if (!urlData?.publicUrl) {
+        setErrorMsg(["Failed to get public URL for uploaded file."]);
+        return;
+      }
 
-      if (insertError) throw new Error(`Failed to create post: ${insertError.message}`);
-
-      setTitle("");
-      setText("");
-      setSelectedFile(null);
-      setMediaType("");
-      setMediaValue("");
-      setDiscard(true);
-
-    } catch (err) {
-      setErrorMsg([err.message]);
+      uploadedFileUrl = urlData.publicUrl;
     }
-  };
+
+    // Calcular iniciais do utilizador
+    const initials = userData.name
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase())
+      .join("");
+
+    // Inserir post
+    const { data: insertedData, error: insertError } = await supabase
+      .from("proposals")
+      .insert({
+        title,
+        text,
+        userName: userData.name,
+        userInitials: initials,
+        author_img: userData.avatar || "", // <-- aqui incluímos o avatar do utilizador
+        author_type: userData.species,
+        image: mediaType === "image" ? uploadedFileUrl : "",
+        video: mediaType === "video" ? mediaValue : "",
+        link: mediaType === "link" ? mediaValue : "",
+        file: mediaType === "file" ? uploadedFileUrl : "",
+        media: {
+          image: mediaType === "image" ? uploadedFileUrl : "",
+          file: mediaType === "file" ? uploadedFileUrl : "",
+          video: mediaType === "video" ? mediaValue : "",
+          link: mediaType === "link" ? mediaValue : ""
+        },
+        likes: [],
+        dislikes: [],
+        comments: [],
+        time: new Date().toISOString()
+      })
+      .select();
+
+    if (insertError) throw new Error(`Failed to create post: ${insertError.message}`);
+
+    // Atualizar lista de posts
+    queryClient.invalidateQueries(["proposals"]);
+
+    // Resetar campos
+    setTitle("");
+    setText("");
+    setSelectedFile(null);
+    setMediaType("");
+    setMediaValue("");
+    setDiscard(true);
+
+  } catch (err) {
+    console.error("Erro geral:", err);
+    setErrorMsg([err.message]);
+  }
+};
 
 
   return (

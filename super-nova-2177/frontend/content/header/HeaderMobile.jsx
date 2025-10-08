@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import content from "@/assets/content.json";
 import LiquidGlass from "../liquid glass/LiquidGlass";
 import Link from "next/link";
@@ -16,17 +16,39 @@ function HeaderMobile({
   setErrorMsg,
   setNotify,
 }) {
-  const [showSettings, setShowSettings] = useState(false); // controla visibilidade do Settings
+  const [showSettings, setShowSettings] = useState(false);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const header = Object.values(content.header.mobiletitles);
 
   const iconsMap = {
     Home: [LuSlack, "Home"],
-    Profile: [FaRegUser, "Profile"],
+    Profile: ["", ""],
     Proposals: [IoBookOutline, "Proposals"],
   };
 
+  useEffect(() => {
+    function handleScroll() {
+      if (window.innerWidth > 1024) {
+        setShowHeader(true);
+        return;
+      }
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        setShowHeader(false);
+      } else {
+        setShowHeader(true);
+      }
+      setLastScrollY(currentScrollY);
+    }
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
   return (
-    <div className="z-9000 fixed bottom-2 left-1/2 transform -translate-x-1/2 lg:hidden">
+    <div className={`z-9000 fixed bottom-2 left-1/2 transform -translate-x-1/2 lg:hidden transition-transform duration-300 ${showHeader ? "translate-y-0" : "-translate-y-[-100px]"}`}>
       <LiquidGlass className="flex items-center justify-center px-4 border-[1px] border-white py-3 rounded-[33px]">
         <ul className="flex items-center justify-center gap-5">
           <li>
@@ -38,7 +60,7 @@ function HeaderMobile({
 
             return (
               <li
-                className="cursor-pointer rounded-[20px] w-13 h-13 bgGray transform transition-transform duration-300 hover:scale-105 flex flex-col items-center justify-center"
+                className={`ursor-pointer rounded-[20px] w-13 h-13 ${index === 1 ? "" : "bgGray"} transform transition-transform duration-300 hover:scale-105 flex flex-col items-center justify-center`}
                 key={index}
               >
                 <Link
@@ -54,7 +76,7 @@ function HeaderMobile({
               </li>
             );
           })}
-          <li className="cursor-pointer hover:scale-105 rounded-[20px] w-13 h-13 flex items-center bgGray justify-center">
+          <li className={`cursor-pointer hover:scale-105 rounded-[20px] w-13 h-13 flex items-center justify-center bgGray`}>
             {showSettings ? (
               <IoIosClose
                 onClick={() => setShowSettings(false)}

@@ -23,6 +23,7 @@
   --transparent-black: #1e1e1ebe;
   --transparent-white: #ffffffde;
   --transparent-gray: rgba(125, 125, 125, 0.258);
+  --transparent-white: rgba(255, 255, 255, 0.744);
   --text-gray-light: #a6a6a6;
   --horizontal-line: #e0e0e0;
   --shadow: 0px 0px 5px #00000033;
@@ -63,11 +64,25 @@ html {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -2px rgba(0, 0, 0, 0.1);
 }
+
+.aiShadow {
+  filter: drop-shadow(-1px 1px 1px rgb(255, 255, 255))
+        drop-shadow(-1px -1px 1px var(--pink))
+        drop-shadow(1px 1px 1px var(--blue))
+}
+
 .bgWhite {
   background-color: var(--gray);
   opacity: 0.85;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.bgWhiteTrue {
+  background-color: rgba(255, 255, 255, 0.953);
+  box-shadow: 0 0px 6px -1px rgba(0, 0, 0, 0.1),
+    0 0px 4px -2px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(3px);
 }
 
 .bgPink {
@@ -185,4 +200,43 @@ button {
 
 .post-text {
   white-space: pre-line;
+}
+
+.listening-border {
+  position: relative;
+  z-index: 0;
+  border-radius: 50%;
+}
+
+.listening-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  padding: 2px;
+  background: conic-gradient(
+    var(--blue),
+    var(--pink)
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: spinBorder 3s linear infinite;
+  z-index: -1;
+}
+
+@keyframes spinBorder {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.listening-border > * {
+  position: relative;
+  z-index: 1;
 }
