@@ -31,3 +31,4 @@ function Comments({ onClick, commentsNum }) {
 }
 
 export default Comments;
+ 
