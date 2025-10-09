@@ -10,7 +10,7 @@ import MediaInput from "./Media";
 import supabase from "../../supabaseClient";
 import { useQueryClient } from "@tanstack/react-query";
 
-function InputFields({ setDiscard }) {
+function InputFields({ setDiscard, activeBE }) {
   const { userData } = useUser();
   const queryClient = useQueryClient(); // react-query client
 

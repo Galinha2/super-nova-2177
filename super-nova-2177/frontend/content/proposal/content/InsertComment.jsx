@@ -7,7 +7,7 @@ function InsertComment({
   proposalId,
   setNotify = () => {},
   setErrorMsg = () => {},
-  setLocalComments = () => {},
+  setLocalComments = () => {}
 }) {
   const { userData, defaultAvatar } = useUser();
   const [comment, setComment] = useState("");

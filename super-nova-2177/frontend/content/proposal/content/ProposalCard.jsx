@@ -27,6 +27,7 @@ function ProposalCard({
   setNotify,
   specie,
   className,
+  activeBE
 }) {
   const [showComments, setShowComments] = useState(false);
   const [localComments, setLocalComments] = useState(comments);
@@ -250,6 +251,7 @@ function ProposalCard({
                 setNotify={setNotify}
                 proposalId={id}
                 setLocalComments={setLocalComments}
+                activeBE={activeBE}
               />
             </div>
             {localComments.map((c, i) => (

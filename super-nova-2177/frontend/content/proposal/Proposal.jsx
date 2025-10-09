@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from "react";
+import { generateRandomProposals } from "@/utils/fakeApi";
 import { useQuery } from "@tanstack/react-query";
 import CreatePost from "../create post/CreatePost";
 import ProposalCard from "./content/ProposalCard";
@@ -43,9 +44,12 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["proposals", filter, search],
+    queryKey: ["proposals", filter, search, activeBE],
     queryFn: async () => {
-      let query = supabase.from("proposals").select(`
+      if (activeBE) {
+        return generateRandomProposals(5, activeBE);
+      } else {
+        let query = supabase.from("proposals").select(`
           id,
           userName,
           userInitials,
@@ -64,65 +68,65 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           comments
         `);
 
-      // Apply filter
-      switch (filter) {
-        case "Latest":
-          query = query.order("time", { ascending: false });
-          break;
-        case "Oldest":
-          query = query.order("time", { ascending: true });
-          break;
-        case "Top Liked":
-          query = query.order("likes", { ascending: false });
-          break;
-        case "Less Liked":
-          query = query.order("likes", { ascending: true });
-          break;
-        
-        case "AI":
-        case "Company":
-        case "Human":
-          query = query.eq("author_type", filter.toLowerCase());
-          break;
-        default:
-          query = query.order("time", { ascending: false });
-          break;
+        // Apply filter
+        switch (filter) {
+          case "Latest":
+            query = query.order("time", { ascending: false });
+            break;
+          case "Oldest":
+            query = query.order("time", { ascending: true });
+            break;
+          case "Top Liked":
+            query = query.order("likes", { ascending: false });
+            break;
+          case "Less Liked":
+            query = query.order("likes", { ascending: true });
+            break;
+          case "AI":
+          case "Company":
+          case "Human":
+            query = query.eq("author_type", filter.toLowerCase());
+            break;
+          default:
+            query = query.order("time", { ascending: false });
+            break;
+        }
+
+        // Apply search filter if present
+        if (search && search.trim() !== "") {
+          query = query.ilike("title", `%${search.trim()}%`);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          setErrorMsg([error.message]);
+          return [];
+        }
+
+        // Ensure JSON fields are arrays or objects
+        return data.map((post) => ({
+          ...post,
+          likes:
+            typeof post.likes === "string"
+              ? JSON.parse(post.likes)
+              : post.likes || [],
+          dislikes:
+            typeof post.dislikes === "string"
+              ? JSON.parse(post.dislikes)
+              : post.dislikes || [],
+          comments:
+            typeof post.comments === "string"
+              ? JSON.parse(post.comments)
+              : post.comments || [],
+          media: post.media || {
+            image: post.image || "",
+            video: post.video || "",
+            link: post.link || "",
+            file: post.file || "",
+          },
+        }));
       }
-
-      // Apply search filter if present
-      if (search && search.trim() !== "") {
-        query = query.ilike("title", `%${search.trim()}%`);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        setErrorMsg([error.message]);
-        return [];
-      }
-
-      // Ensure JSON fields are arrays or objects
-      return data.map((post) => ({
-        ...post,
-        likes:
-          typeof post.likes === "string"
-            ? JSON.parse(post.likes)
-            : post.likes || [],
-        dislikes:
-          typeof post.dislikes === "string"
-            ? JSON.parse(post.dislikes)
-            : post.dislikes || [],
-        comments:
-          typeof post.comments === "string"
-            ? JSON.parse(post.comments)
-            : post.comments || [],
-        media: post.media || {
-          image: post.image || "",
-          video: post.video || "",
-          link: post.link || "",
-          file: post.file || "",
-        },
-      }));
     },
     keepPreviousData: true,
   });
@@ -136,7 +140,7 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
           <CreatePost setDiscard={setDiscard} />
         ) : (
           <div ref={inputRef}>
-            <InputFields setDiscard={setDiscard} />
+            <InputFields activeBE={activeBE} setDiscard={setDiscard} />
           </div>
         )}
 

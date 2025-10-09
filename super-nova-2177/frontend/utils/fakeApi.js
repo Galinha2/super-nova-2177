@@ -1,0 +1,63 @@
+// frontend/utils/fakeApi.js
+export function generateRandomProposals(count = 5, activeBE = false) {
+    if (!activeBE) return [];
+
+    const sampleTitles = [
+        "Improve UI design",
+        "Add new feature",
+        "Bug fix required",
+        "Refactor component",
+        "Optimize performance",
+    ];
+
+    const sampleUsers = [
+        { name: "Alice Johnson", initials: "AJ", type: "Human" },
+        { name: "Bob Smith", initials: "BS", type: "Company" },
+        { name: "Charlie Lee", initials: "CL", type: "AI" },
+    ];
+
+    const sampleMedia = [
+        
+        { type: "video", url: "https://www.youtube.com/watch?v=jWQx2f-CErU&pp=ygUSYXN0YSBtdXNpY2Ega29yZWFu" },
+        { type: "video", url: "https://www.youtube.com/watch?v=ZeerrnuLi5E&pp=ygUTYWVzcGEgbXVzaWNhIGtvcmVhbg%3D%3D" },
+        { type: "link", url: "https://example.com" },
+        { type: "file", url: "https://example.com/sample.pdf" },
+        null,
+    ];
+
+    const proposals = Array.from({ length: count }).map((_, i) => {
+        const user = sampleUsers[Math.floor(Math.random() * sampleUsers.length)];
+        const media = sampleMedia[Math.floor(Math.random() * sampleMedia.length)];
+        const randomLikes = Math.floor(Math.random() * 20);
+        const randomDislikes = Math.floor(Math.random() * 20);
+        const comments = Array.from({ length: Math.floor(Math.random() * 5) }).map(
+            (_, j) => ({
+                id: j + 1,
+                user: sampleUsers[Math.floor(Math.random() * sampleUsers.length)].name,
+                comment: "This is a sample comment " + (j + 1),
+            })
+        );
+
+        return {
+            id: `${i + 1}`,
+            userName: user.name,
+            userInitials: user.initials,
+            author_type: user.type,
+            title: sampleTitles[Math.floor(Math.random() * sampleTitles.length)],
+            text: media ? "" : "This is a text-only post for proposal. It contains no images, videos, or external links, but it serves as a clear example of how a proposal can be shared in a simple written format. The goal is to demonstrate that even without multimedia content, a proposal can still provide meaningful context, ideas, or instructions. Text-only proposals are often used to communicate concepts, suggestions, or improvements that don’t require visual support, making them lightweight, direct, and easy to read. " + (i + 1),
+            media: media
+                ? {
+                    video: media.type === "video" ? media.url : null,
+                    link: media.type === "link" ? media.url : null,
+                    file: media.type === "file" ? media.url : null,
+                }
+                : null,
+            comments,
+            likes: Array(randomLikes).fill(1),
+            dislikes: Array(randomDislikes).fill(1),
+            time: new Date(Date.now() - Math.floor(Math.random() * 1000000000)).toISOString(),
+        };
+    });
+
+    return proposals;
+}

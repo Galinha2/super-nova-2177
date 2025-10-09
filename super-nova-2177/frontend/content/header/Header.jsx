@@ -16,7 +16,6 @@ function Header({activeBE, setActiveBE, errorMsg, setErrorMsg, setNotify}) {
   // Mapeamento de ícones para os itens do menu
   const iconsMap = {
     Home: LuSlack,
-    Profile: FaRegUser,
     Proposals: IoBookOutline,
   };
 
