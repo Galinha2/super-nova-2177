@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import content from "@/assets/content.json";
 import LiquidGlass from "../liquid glass/LiquidGlass";
 import Link from "next/link";
@@ -18,6 +18,8 @@ function HeaderMobile({
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const header = Object.values(content.header.mobiletitles);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [showHeader, setShowHeader] = useState(true);
 
   const iconsMap = {
     Home: [LuSlack, "Home"],
@@ -25,8 +27,28 @@ function HeaderMobile({
     Proposals: [IoBookOutline, "Proposals"],
   };
 
+  useEffect(() => {
+    function handleScroll() {
+      if (window.innerWidth > 1024) {
+        setShowHeader(true);
+        return;
+      }
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        setShowHeader(false);
+      } else {
+        setShowHeader(true);
+      }
+      setLastScrollY(currentScrollY);
+    }
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
   return (
-    <div className="z-9000 fixed bottom-2 left-1/2 transform -translate-x-1/2 lg:hidden">
+    <div className={`z-9000 fixed bottom-2 left-1/2 transform -translate-x-1/2 lg:hidden transition-transform duration-300 ${showHeader ? "translate-y-0" : "-translate-y-[-100px]"}`}>
       <LiquidGlass className="flex items-center justify-center px-4 border-[1px] border-white py-3 rounded-[33px]">
         <ul className="flex items-center justify-center gap-5">
           <li>
