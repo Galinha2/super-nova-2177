@@ -1,6 +1,6 @@
 # Docker Compose configuration for development with hot reload
 
-version: "3.9"
+version: "3.8"
 
 services:
   db:
@@ -29,7 +29,11 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      - ./backend:/app
+
       - ./backend/uploads:/app/uploads
+
+      - ./supernova_2177_ui_weighted:/app/supernova_2177_ui_weighted
     networks:
       - default
 
