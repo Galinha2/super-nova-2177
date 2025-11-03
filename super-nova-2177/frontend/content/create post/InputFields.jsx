@@ -10,7 +10,6 @@ import Error from "../Error";
 import MediaInput from "./Media";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-// ✅ Certifique-se de que este é um componente cliente
 function InputFields({ setDiscard, setPosts, refetchPosts, activeBE }) {
   const { userData } = useUser();
   const queryClient = useQueryClient();
@@ -22,71 +21,6 @@ function InputFields({ setDiscard, setPosts, refetchPosts, activeBE }) {
   const [mediaValue, setMediaValue] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
-
-  // ✅ Mova a mutation para dentro do componente
-  const mutation = useMutation({
-    mutationFn: async (newPost) => {
-      if (activeBE) {
-        return Promise.resolve({
-          id: Date.now(),
-          title: newPost.title,
-          text: newPost.text,
-          userName: newPost.userName,
-          author_type: newPost.author_type,
-          author_img: newPost.author_img,
-          date: newPost.date,
-          image: newPost.image ? URL.createObjectURL(newPost.image) : "",
-          file: newPost.file ? URL.createObjectURL(newPost.file) : "",
-          video: newPost.video || "",
-          link: newPost.link || "",
-          comments: [],
-          likes: [],
-          dislikes: [],
-        });
-      }
-
-      const formData = new FormData();
-      formData.append("title", newPost.title);
-      formData.append("description", newPost.text); // ✅ Mudado de "body" para "description"
-      formData.append("author", newPost.userName);
-      formData.append("author_type", newPost.author_type);
-      formData.append("author_img", newPost.author_img);
-      formData.append("date", newPost.date);
-
-      if (newPost.image) formData.append("image", newPost.image);
-      if (newPost.file) formData.append("file", newPost.file);
-      if (newPost.video) formData.append("video", newPost.video);
-      if (newPost.link) formData.append("link", newPost.link);
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || errorData.message || "Failed to create post");
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      if (setPosts) {
-        setPosts((oldPosts) => [data, ...oldPosts]);
-      }
-      queryClient.invalidateQueries({ queryKey: ["proposals"] });
-      if (refetchPosts) {
-        refetchPosts();
-      }
-      setDiscard(true);
-      handleRemoveMedia();
-      setTitle("");
-      setText("");
-    },
-    onError: (error) => {
-      console.error("Mutation error:", error);
-      setErrorMsg([error.message]);
-    },
-  });
 
   const handleRemoveMedia = () => {
     setMediaType("");
@@ -115,7 +49,11 @@ function InputFields({ setDiscard, setPosts, refetchPosts, activeBE }) {
       setSelectedFile(fileObj);
       setMediaType("video");
       setMediaValue(fileObj.name);
+    } else {
+      // For other types or mismatched file type, do not set media
+      return;
     }
+    // Clear input value to allow re-upload of same file if needed
     e.target.value = null;
   };
 
@@ -129,7 +67,6 @@ function InputFields({ setDiscard, setPosts, refetchPosts, activeBE }) {
   };
 
   const handleFileInputChange = (e) => setInputValue(e.target.value);
-  
   const handleSaveInputMedia = (type) => {
     if (!inputValue.trim()) return;
     setMediaValue(inputValue.trim());
@@ -137,34 +74,65 @@ function InputFields({ setDiscard, setPosts, refetchPosts, activeBE }) {
     setInputValue("");
   };
 
-  const handlePublish = async () => {
-    const errors = [];
-    if (!title.trim()) errors.push("No post Title found.");
-    if (!text.trim() && !mediaValue && !selectedFile) errors.push("No post Media found.");
-    if (!userData?.name) errors.push("Enter username in profile settings before publishing.");
-    if (!userData?.species) errors.push("Enter your species in profile settings before publishing.");
-    
-    if (errors.length > 0) {
-      setErrorMsg(errors);
-      return;
-    }
-    setErrorMsg([]);
+  const mutation = useMutation({
+    mutationFn: async (newPost) => {
+      if (activeBE) {
+        return Promise.resolve({
+          id: Date.now(),
+          title: newPost.title,
+          text: newPost.text,
+          userName: newPost.userName,
+          author_type: newPost.author_type,
+          author_img: newPost.author_img,
+          date: newPost.date,
+          image: newPost.image ? URL.createObjectURL(newPost.image) : "",
+          file: newPost.file ? URL.createObjectURL(newPost.file) : "",
+          video: newPost.video || "",
+          link: newPost.link || "",
+          comments: [],
+          likes: [],
+          dislikes: [],
+        });
+      }
+      const formData = new FormData();
+      formData.append("title", newPost.title);
+      formData.append("body", newPost.text);
+      formData.append("author", newPost.userName);
+      formData.append("author_type", newPost.author_type);
+      formData.append("author_img", newPost.author_img);
+      formData.append("date", newPost.date);
 
-    const newPost = {
-      title,
-      text,
-      userName: userData.name,
-      author_type: userData.species,
-      author_img: userData.avatar || "",
-      date: new Date().toISOString(),
-      image: mediaType === "image" ? selectedFile : null,
-      file: mediaType === "file" ? selectedFile : null,
-      video: mediaType === "video" ? (selectedFile || mediaValue) : "",
-      link: mediaType === "link" ? mediaValue : "",
-    };
+      if (newPost.image) formData.append("image", newPost.image);
+      if (newPost.file) formData.append("file", newPost.file);
+      if (newPost.video) formData.append("video", newPost.video);
+      if (newPost.link) formData.append("link", newPost.link);
 
-    mutation.mutate(newPost);
-  };
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create post");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (setPosts) {
+        setPosts((oldPosts) => [data, ...oldPosts]);
+      }
+      queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      if (refetchPosts) {
+        refetchPosts();
+      }
+      setDiscard(true);
+      handleRemoveMedia();
+      setTitle("");
+      setText("");
+    },
+    onError: (error) => setErrorMsg([error.message]),
+  });
 
   return (
     <div className="fixed z-100 bottom-0 md:top-0 left-0 lg:relative lg:mt-[-70px]">
@@ -247,10 +215,35 @@ function InputFields({ setDiscard, setPosts, refetchPosts, activeBE }) {
           <div className="text-[0.6em] flex gap-3 text-white">
             <button
               className="hover:scale-95 cursor-pointer shadow-[var(--shadow-pink)] bg-[var(--pink)] rounded-full px-3 w-30"
-              onClick={handlePublish}
-              disabled={mutation.isPending}
+              onClick={async () => {
+                const errors = [];
+                if (!title.trim()) errors.push("No post Title found.");
+                if (!text.trim() && !mediaValue && !selectedFile) errors.push("No post Media found.");
+                if (!userData?.name) errors.push("Enter username in profile settings before publishing.");
+                if (!userData?.species) errors.push("Enter your species in profile settings before publishing.");
+                if (errors.length > 0) {
+                  setErrorMsg(errors);
+                  return;
+                }
+                setErrorMsg([]);
+
+                const newPost = {
+                  title,
+                  text,
+                  userName: userData.name,
+                  author_type: userData.species,
+                  author_img: userData.avatar || "",
+                  date: new Date().toISOString(),
+                  image: mediaType === "image" ? selectedFile : null,
+                  file: mediaType === "file" ? selectedFile : null,
+                  video: mediaType === "video" ? (selectedFile || mediaValue) : "",
+                  link: mediaType === "link" ? mediaValue : "",
+                };
+
+                mutation.mutate(newPost);
+              }}
             >
-              {mutation.isPending ? "Publishing..." : "Publish"}
+              Publish
             </button>
             <button
               onClick={() => setDiscard(true)}
