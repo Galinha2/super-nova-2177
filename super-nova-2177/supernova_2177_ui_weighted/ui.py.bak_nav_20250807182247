@@ -1,0 +1,33 @@
+
+# === superNova_2177 unified UI (stable) ===
+from __future__ import annotations
+import os, importlib, streamlit as st
+APP_TITLE = "superNova_2177"
+# --- backend toggle wiring (pages read env via _use_backend) ---
+def _set_backend_env(use_real: bool, url: str) -> None:
+    os.environ["USE_REAL_BACKEND"] = "1" if use_real else "0"
+    os.environ["BACKEND_URL"] = url or os.environ.get("BACKEND_URL","http://127.0.0.1:8000")
+# --- pages registry (explicit order) ---
+PAGES = {
+    "Feed":       "pages.feed",
+    "Chat":       "pages.chat",
+    "Messages":   "pages.messages",
+    "Profile":    "pages.profile",
+    "Proposals":  "pages.proposals",
+    "Decisions":  "pages.decisions",
+    "Execution":  "pages.execution",
+}
+def _render_page(name: str):
+    mod = importlib.import_module(PAGES[name])
+    fn = getattr(mod, "render", None) or getattr(mod, "main", None)
+    if fn is None:
+        st.error(f"{name} page has no render() or main()")
+        return
+    fn()
+def main():
+    st.set_page_config(page_title=APP_TITLE, layout="wide")
+    st.title(APP_TITLE)
+    # Sidebar navigation (single source of truth)
+    with st.sidebar:
+        st.markdown("### [removed by repair_ui_nav] (custom radio nav)
+

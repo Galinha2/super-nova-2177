@@ -1,0 +1,104 @@
+2025-07-29 13:21:49,475 | WARNING | ScriptRunner.scriptThread | calculate_creative_leap_score docstring missing 'citation_uri' (scientific_utils.py:74) | 감사합니다!
+2025-07-29 13:21:49,475 | WARNING | ScriptRunner.scriptThread | calculate_creative_leap_score docstring missing 'assumptions' (scientific_utils.py:74) | 감사합니다!
+2025-07-29 13:21:49,475 | WARNING | ScriptRunner.scriptThread | calculate_creative_leap_score docstring missing 'validation_notes' (scientific_utils.py:74) | 감사합니다!
+2025-07-29 13:36:16,265 | WARNING | ScriptRunner.scriptThread | calculate_creative_leap_score docstring missing 'citation_uri' (scientific_utils.py:74) | 감사합니다!
+2025-07-29 13:36:16,266 | WARNING | ScriptRunner.scriptThread | calculate_creative_leap_score docstring missing 'assumptions' (scientific_utils.py:74) | 감사합니다!
+2025-07-29 13:36:16,266 | WARNING | ScriptRunner.scriptThread | calculate_creative_leap_score docstring missing 'validation_notes' (scientific_utils.py:74) | 감사합니다!
+2025-08-01 03:05:45,542 | WARNING | MainThread | (trapped) error reading bcrypt version (bcrypt.py:622) | 감사합니다!
+Traceback (most recent call last):
+  File "/root/.pyenv/versions/3.12.10/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-01 03:05:45,542 | WARNING | MainThread | (trapped) error reading bcrypt version (bcrypt.py:622) | 감사합니다!
+Traceback (most recent call last):
+  File "/root/.pyenv/versions/3.12.10/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-01 03:05:47,699 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,699 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,699 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,699 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,699 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-01 03:05:47,699 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-01 03:05:47,699 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-01 03:05:47,699 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-01 03:05:47,701 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,701 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,701 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,701 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,703 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,703 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,703 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,703 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,703 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-01 03:05:47,703 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-01 03:05:47,703 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-01 03:05:47,703 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-01 03:05:47,704 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,704 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,704 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-01 03:05:47,704 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:35,604 | WARNING | MainThread | (trapped) error reading bcrypt version (bcrypt.py:622) | 감사합니다!
+Traceback (most recent call last):
+  File "/root/.pyenv/versions/3.12.10/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-02 01:16:35,604 | WARNING | MainThread | (trapped) error reading bcrypt version (bcrypt.py:622) | 감사합니다!
+Traceback (most recent call last):
+  File "/root/.pyenv/versions/3.12.10/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-02 01:16:35,604 | WARNING | MainThread | (trapped) error reading bcrypt version (bcrypt.py:622) | 감사합니다!
+Traceback (most recent call last):
+  File "/root/.pyenv/versions/3.12.10/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-02 01:16:39,839 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,839 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,839 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,839 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,839 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,840 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,840 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,840 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,840 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,840 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,842 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,842 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,842 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,842 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,842 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,845 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,845 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,845 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,845 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,845 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,845 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,845 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,845 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,845 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,845 | INFO | MainThread | Removed duplicate page module Foo.py (page_registry.py:56) | 감사합니다!
+2025-08-02 01:16:39,847 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,847 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,847 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,847 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-02 01:16:39,847 | WARNING | MainThread | Case-insensitive file collision for 'foo': Foo.py, foo.py (page_registry.py:83) | 감사합니다!
+2025-08-07 16:27:42,472 | WARNING | ScriptRunner.scriptThread | (trapped) error reading bcrypt version (bcrypt.py:622) | 감사합니다!
+Traceback (most recent call last):
+  File "C:\Users\tahag\Desktop\gptcmon\streamlit-test\.venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-07 16:27:42,472 | WARNING | ScriptRunner.scriptThread | (trapped) error reading bcrypt version (bcrypt.py:622) | 감사합니다!
+Traceback (most recent call last):
+  File "C:\Users\tahag\Desktop\gptcmon\streamlit-test\.venv\Lib\site-packages\passlib\handlers\bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-08-07 18:38:18,824 | INFO | ScriptRunner.scriptThread | {"version": "1.0", "positional_args": [8001], "event": "Prometheus metrics server listening on port %s", "level": "info", "logger": "TranscendentalResonance", "timestamp": "2025-08-07T22:38:18.824037Z"} (superNova_2177.py:646) | 감사합니다!
+2025-08-07 18:38:18,824 | INFO | ScriptRunner.scriptThread | {"version": "1.0", "positional_args": [8001], "event": "Prometheus metrics server listening on port %s", "level": "info", "logger": "TranscendentalResonance", "timestamp": "2025-08-07T22:38:18.824037Z"} (superNova_2177.py:646) | 감사합니다!

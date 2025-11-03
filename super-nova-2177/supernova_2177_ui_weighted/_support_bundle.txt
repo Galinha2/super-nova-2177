@@ -1,0 +1,3163 @@
+
+################################################################################
+# FILE: ui.py
+################################################################################
+
+# === superNova_2177 unified UI (stable) ===
+from __future__ import annotations
+import os, importlib, streamlit as st
+
+APP_TITLE = "superNova_2177"
+
+# --- backend toggle wiring (pages read env via _use_backend) ---
+def _set_backend_env(use_real: bool, url: str) -> None:
+    os.environ["USE_REAL_BACKEND"] = "1" if use_real else "0"
+    os.environ["BACKEND_URL"] = url or os.environ.get("BACKEND_URL","http://127.0.0.1:8000")
+
+# --- pages registry (explicit order) ---
+PAGES = {
+    "Feed":       "pages.feed",
+    "Chat":       "pages.chat",
+    "Messages":   "pages.messages",
+    "Profile":    "pages.profile",
+    "Proposals":  "pages.proposals",
+    "Decisions":  "pages.decisions",
+    "Execution":  "pages.execution",
+}
+
+def _render_page(name: str):
+    mod = importlib.import_module(PAGES[name])
+    fn = getattr(mod, "render", None) or getattr(mod, "main", None)
+    if fn is None:
+        st.error(f"{name} page has no render() or main()")
+        return
+    fn()
+
+def main():
+    st.set_page_config(page_title=APP_TITLE, layout="wide")
+    st.title(APP_TITLE)
+
+    # Sidebar navigation (single source of truth)
+    with st.sidebar:
+        st.markdown("### [removed by repair_ui_nav] (custom radio nav)
+
+################################################################################
+# FILE: app.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+import streamlit as st
+from ui_utils import render_modern_layout
+from db_models import init_db, seed_default_users
+try:
+    from streamlit_javascript import st_javascript
+except Exception:  # pragma: no cover - optional dependency
+    def st_javascript(*_a, **_k):
+        return ""
+import jwt
+from superNova_2177 import get_settings
+
+
+def check_session() -> bool:
+    """Return ``True`` if a valid session cookie is present."""
+    cookies = st_javascript("document.cookie") or ""
+    if not cookies:
+        return True
+    token = None
+    for part in cookies.split(";"):
+        if part.strip().startswith("session="):
+            token = part.split("=", 1)[1]
+    if not token:
+        return False
+    settings = get_settings()
+    try:
+        jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return True
+    except Exception:
+        return False
+
+
+def main() -> None:
+    """Launch the Streamlit UI after ensuring the database is ready."""
+    init_db()
+    seed_default_users()
+    if not check_session():
+        st.warning("Please log in to continue.")
+        return
+    render_modern_layout()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: frontend\__init__.py
+################################################################################
+"""Convenience exports for frontend utilities."""
+
+from .theme import (
+    apply_theme,
+    set_theme,
+    inject_modern_styles,
+    inject_global_styles,
+    get_accent_color,
+)
+from .assets import story_css, story_js, reaction_css, scroll_js
+
+__all__ = [
+    "apply_theme",
+    "set_theme",
+    "inject_modern_styles",
+    "inject_global_styles",
+    "get_accent_color",
+    "story_css",
+    "story_js",
+    "reaction_css",
+    "scroll_js",
+]
+
+################################################################################
+# FILE: frontend\assets.py
+################################################################################
+"""Helper functions returning static CSS and JS snippets for Streamlit pages."""
+
+from __future__ import annotations
+
+__all__ = [
+    "story_css",
+    "story_js",
+    "reaction_css",
+    "scroll_js",
+]
+
+
+def story_css() -> str:
+    """Return CSS for the horizontal story strip and post cards."""
+    return """
+<style>
+.story-strip{display:flex;overflow-x:auto;gap:0.5rem;padding:0.5rem;margin-bottom:1rem;}
+.story-item{flex:0 0 auto;text-align:center;font-size:0.8rem;color:var(--text-muted);}
+.story-item img{border-radius:50%;border:2px solid var(--accent);}
+.post-card{background:var(--card);padding:0.5rem 0;border-radius:12px;           margin-bottom:1rem;box-shadow:0 1px 2px rgba(0,0,0,0.05);}
+.post-header{display:flex;align-items:center;gap:0.5rem;padding:0 0.5rem;margin-bottom:0.5rem;}
+.post-header img{border-radius:50%;width:40px;height:40px;}
+.post-caption{padding:0.25rem 0.5rem;}
+</style>
+"""
+
+
+def story_js() -> str:
+    """Return JavaScript for the auto-advancing story carousel."""
+    return """
+(() => {
+  const strip = document.getElementById('story-strip');
+  if (!strip || window.storyCarouselInit) return;
+  window.storyCarouselInit = true;
+  let idx = 0;
+  const advance = () => {
+    idx = (idx + 1) % strip.children.length;
+    const el = strip.children[idx];
+    strip.scrollTo({left: el.offsetLeft, behavior: 'smooth'});
+  };
+  let interval = setInterval(advance, 3000);
+  let startX = 0;
+  let scrollLeft = 0;
+  strip.addEventListener('touchstart', (e) => {
+    clearInterval(interval);
+    startX = e.touches[0].pageX;
+    scrollLeft = strip.scrollLeft;
+  });
+  strip.addEventListener('touchmove', (e) => {
+    const x = e.touches[0].pageX;
+    const walk = startX - x;
+    strip.scrollLeft = scrollLeft + walk;
+  });
+  strip.addEventListener('touchend', () => {
+    interval = setInterval(advance, 3000);
+  });
+})();
+"""
+
+
+def reaction_css() -> str:
+    """Return CSS and external font link for reaction buttons."""
+    return """
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+.reaction-btn{background:transparent;border:none;font-size:1.1rem;cursor:pointer;margin-right:0.25rem;transition:transform 0.1s ease;}
+.reaction-btn:active{transform:scale(1.2);}
+</style>
+"""
+
+
+def scroll_js() -> str:
+    """Return JavaScript for observing the feed load sentinel."""
+    return """
+<script>
+const sentinel = document.getElementById('load-sentinel');
+if(sentinel){
+  const observer = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting){const btn=document.getElementById('load-more-btn');btn&&btn.click();}});
+  });
+  observer.observe(sentinel);
+}
+</script>
+"""
+
+
+################################################################################
+# FILE: frontend\profile_card.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""(mobile-first)."""
+
+from __future__ import annotations
+import streamlit as st
+
+# ------------------------------------------------------------------  Globals
+_CSS_KEY = "_profile_card_css_injected"
+
+_CSS = """
+<style id="profile-card-css">
+/* ---------- Glassmorphic wrapper ---------- */
+.pc-wrapper{
+  display:flex;flex-direction:column;align-items:center;
+  width:100%;max-width:360px;margin-inline:auto;
+  background:var(--card);
+  border:1px solid var(--card);
+  backdrop-filter:blur(14px) saturate(160%);
+  border-radius:1.2rem;overflow:hidden;padding-bottom:1rem;
+  animation:fade-in .35s ease forwards;
+}
+@keyframes fade-in{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+
+.pc-banner{width:100%;height:84px;
+  background:var(--accent);}
+.pc-avatar{width:88px;height:88px;border-radius:50%;
+  object-fit:cover;background:var(--bg);margin-top:-46px;
+  border:4px solid var(--card);}
+.pc-name{font-size:1.15rem;font-weight:600;margin:.45rem 0 .1rem}
+.pc-tag{font-size:.85rem;color:var(--text-muted,#7e9aaa);
+  text-align:center;margin:0 .75rem .65rem}
+.pc-stats{display:flex;gap:1.5rem;margin-bottom:.8rem}
+.pc-stats .num{font-weight:600;font-size:.95rem;text-align:center}
+.pc-stats .lbl{font-size:.75rem;color:var(--text-muted,#7e9aaa);
+  text-align:center}
+.pc-actions{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center}
+.pc-btn{flex:1 1 120px;padding:.45rem .8rem;border:none;
+  border-radius:.65rem;background:var(--accent);
+  color:var(--bg);font-size:.85rem;cursor:pointer;
+  transition:background .2s ease}
+.pc-btn:hover{background:var(--accent)}
+@media(max-width:400px){.pc-wrapper{max-width:100%}}
+</style>
+"""
+
+# Default placeholder profile used by pages when no user data is available.
+DEFAULT_USER = {
+    "username": "JaneDoe",
+    "bio": "Dreaming across dimensions and sharing vibes.",
+    "followers": 128,
+    "following": 75,
+    "posts": 34,
+    "avatar_url": "https://placehold.co/150x150",
+    "website": "https://example.com",
+    "location": "Wonderland",
+    "feed": [f"https://placehold.co/300x300?text=Post+{i}" for i in range(1, 7)],
+}
+
+# ------------------------------------------------------------------  Helpers
+def _ensure_css():
+    if not st.session_state.get(_CSS_KEY):
+        st.markdown(_CSS, unsafe_allow_html=True)
+        st.session_state[_CSS_KEY] = True
+
+
+# ------------------------------------------------------------------  API
+def render_profile_card(
+    *,
+    username: str,
+    avatar_url: str,
+    tagline: str | None = None,
+    stats: dict[str, int] | None = None,
+    actions: list[str] | None = None,
+) -> None:
+    """Render a responsive, LinkedIn-style profile header."""
+    _ensure_css()
+    stats = stats or {"Followers": 0, "Following": 0}
+    actions = actions or []
+
+    st.markdown('<div class="pc-wrapper">', unsafe_allow_html=True)
+
+    # Banner + avatar
+    st.markdown('<div class="pc-banner"></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<img class="pc-avatar" src="{avatar_url}" alt="avatar">',
+        unsafe_allow_html=True,
+    )
+
+    # Name & tagline
+    st.markdown(f'<div class="pc-name">{username}</div>', unsafe_allow_html=True)
+    if tagline:
+        st.markdown(f'<div class="pc-tag">{tagline}</div>', unsafe_allow_html=True)
+
+    # Stats
+    st.markdown('<div class="pc-stats">', unsafe_allow_html=True)
+    for label, value in list(stats.items())[:3]:
+        st.markdown(
+            f'<div><div class="num">{value}</div>'
+            f'<div class="lbl">{label}</div></div>',
+            unsafe_allow_html=True,
+        )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Action buttons
+    if actions:
+        st.markdown('<div class="pc-actions">', unsafe_allow_html=True)
+        btn_cols = st.columns(len(actions), gap="small")
+        for col, label in zip(btn_cols, actions):
+            with col:
+                st.button(label, key=f"{username}_{label}_btn", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+__all__ = ["render_profile_card", "DEFAULT_USER"]
+
+################################################################################
+# FILE: frontend\theme.py
+################################################################################
+# frontend/theme.py
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Theme management for superNova_2177."""
+
+import streamlit as st
+
+_THEME_CSS_KEY = "_theme_css_injected"
+
+def set_theme(theme: str):
+    if theme == "dark":
+        st.markdown("<style>body { background-color: #333; color: white; }</style>", unsafe_allow_html=True)
+    else:
+        st.markdown("<style>body { background-color: white; color: black; }</style>", unsafe_allow_html=True)
+
+def inject_global_styles(force: bool = False) -> None:
+    if st.session_state.get(_THEME_CSS_KEY) and not force:
+        return
+    st.markdown("""
+        <style>
+            .stApp { font-family: Arial, sans-serif; }
+            /* Global styles */
+        </style>
+    """, unsafe_allow_html=True)
+    st.session_state[_THEME_CSS_KEY] = True
+
+def initialize_theme(name: str = "light") -> None:
+    set_theme(name)
+    inject_global_styles(force=True)
+
+def apply_theme(name: str = "light") -> None:
+    initialize_theme(name)
+
+def inject_modern_styles(force: bool = False) -> None:
+    inject_global_styles(force)
+
+def get_accent_color() -> str:
+    return "#4f8bf9"
+
+################################################################################
+# FILE: frontend\ui_layout.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+# ruff: noqa
+"""Central UI-layout helpers.
+
+Key helpers
+-----------
+main_container()            – main page container
+sidebar_container()         – Streamlit sidebar wrapper
+render_top_bar()            – sticky translucent navbar
+                             (logo · search · bell · beta · avatar)
+render_sidebar_nav(...)     – vertical nav
+                             (option-menu or radio fallback)
+render_title_bar(icon,txt)  – page H1 with emoji / icon
+show_preview_badge(text)    – floating “Preview” badge
+render_profile_card(user)   – proxy around profile_card.render_profile_card
+"""
+
+from __future__ import annotations
+
+import importlib
+import os
+from pathlib import Path
+from typing import Dict, Iterable, Optional
+from uuid import uuid4
+
+import streamlit as st
+from modern_ui_components import SIDEBAR_STYLES
+from profile_card import render_profile_card as _render_profile_card
+from frontend import theme
+
+try:
+    from streamlit_javascript import st_javascript
+except Exception:  # pragma: no cover - optional dependency
+
+    def st_javascript(*_a, **_kw):
+        return None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONSTANTS & GLOBAL CSS
+# ═══════════════════════════════════════════════════════════════════════════════
+_EMOJI_FALLBACK = "🔖"
+
+# Slide-in drawer & mobile bottom tabs
+DRAWER_CSS = """
+<style>
+[data-testid='stSidebar'] {
+  background: var(--card);
+  border-right: 1px solid rgba(255,255,255,0.1);
+  transition: transform 0.3s ease;
+  z-index: 1002;
+}
+[data-testid='stSidebar'].collapsed {
+  transform: translateX(-100%);
+}
+@media(min-width:768px) {
+  [data-testid='stSidebar'] {
+    transform: none !important;
+  }
+}
+#drawer_btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+@media(max-width:768px) {
+  #drawer_btn {
+    display: block;
+  }
+}
+</style>
+"""
+
+
+BOTTOM_TAB_TEMPLATE = """
+<style>
+.sn-bottom-tabs{
+  position: {position};
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: none;
+  background: var(--card);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  z-index: 1001;
+}
+.sn-bottom-tabs a{
+  flex: 1;
+  text-align: center;
+  padding: .4rem 0;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+
+.sn-bottom-tabs a i{font-size:1.2rem;}
+.sn-bottom-tabs a.active{color:{accent};}
+@media(max-width:768px){
+  .sn-bottom-tabs{display:flex;align-items:center;justify-content:space-around;}
+}
+@media(min-width:768px){.sn-bottom-tabs{display:none!important;}}
+</style>
+<div class='sn-bottom-tabs'>
+  <a href='#' data-tag='home'><i class='fa-solid fa-house'></i></a>
+  <a href='#' data-tag='video'><i class='fa-solid fa-video'></i></a>
+  <a href='#' data-tag='network'><i class='fa-solid fa-user-group'></i></a>
+  <a href='#' data-tag='notifications'><i class='fa-solid fa-bell'></i></a>
+  <a href='#' data-tag='jobs'><i class='fa-solid fa-briefcase'></i></a>
+</div>
+<script>
+  var active='{active}';
+  document.querySelectorAll('.sn-bottom-tabs a').forEach(a=>{
+    if(a.dataset.tag===active){a.classList.add('active');}
+  });
+</script>
+"""
+
+# ─────────────────────────────  repo paths (fallback if utils.paths missing)
+try:
+    _paths = importlib.import_module("utils.paths")
+    ROOT_DIR: Path = _paths.ROOT_DIR
+    PAGES_DIR: Path = _paths.PAGES_DIR
+except Exception:  # pragma: no cover
+    ROOT_DIR = Path(__file__).resolve().parents[1]
+    PAGES_DIR = ROOT_DIR / "pages"
+
+# optional pretty-sidebar package
+try:
+    from streamlit_option_menu import option_menu
+
+    USE_OPTION_MENU = True
+except ImportError:  # pragma: no cover
+    USE_OPTION_MENU = False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BASIC CONTAINERS
+# ═══════════════════════════════════════════════════════════════════════════════
+def main_container() -> st.delta_generator.DeltaGenerator:
+    """Main content container (injects base CSS once)."""
+    theme.inject_modern_styles()
+    return st.container()
+
+
+def sidebar_container() -> st.delta_generator.DeltaGenerator:
+    """Sidebar wrapper implementing a slide-in drawer."""
+    if "_drawer_css" not in st.session_state:
+        st.markdown(DRAWER_CSS, unsafe_allow_html=True)
+        st.session_state["_drawer_css"] = True
+    st.markdown(
+        """
+        <script>
+        const toggle=window.parent.document.getElementById('drawer_toggle');
+        const sb=document.querySelector('[data-testid="stSidebar"]');
+        function syncDrawer(){
+            if(!sb) return;
+            const open = toggle? toggle.checked : window.innerWidth>=768;
+            sb.classList.toggle('collapsed', !open);
+            if(toggle) localStorage.setItem('drawer_open', open);
+        }
+        syncDrawer();
+        toggle?.addEventListener('change', syncDrawer);
+        window.addEventListener('resize', syncDrawer);
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+    return st.sidebar
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROFILE CARD PROXY
+# ═══════════════════════════════════════════════════════════════════════════════
+def render_profile_card(username: str, avatar_url: str) -> None:
+    """Call *profile_card.render_profile_card* with the current Streamlit ctx."""
+    import profile_card as _pc
+
+    original_st = _pc.st
+    _pc.st = st
+    try:
+        _render_profile_card(username, avatar_url)
+    finally:
+        _pc.st = original_st
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TOP BAR (mobile-friendly)
+# ═══════════════════════════════════════════════════════════════════════════════
+def render_top_bar() -> None:
+    if "PYTEST_CURRENT_TEST" in os.environ:  # unit-test stub safety
+        return
+
+    # Determine initial drawer state using localStorage and viewport width
+    if "_drawer_open" not in st.session_state:
+        stored = None
+        try:
+            stored = st_javascript("window.localStorage.getItem('drawer_open')")
+        except Exception:
+            stored = None
+        if isinstance(stored, str) and stored:
+            st.session_state["_drawer_open"] = stored.lower() == "true"
+        else:
+            try:
+                width = st_javascript("window.innerWidth")
+                st.session_state["_drawer_open"] = bool(width) and int(width) >= 768
+            except Exception:
+                st.session_state["_drawer_open"] = True
+
+    # inject styles & FA icons once
+    st.markdown(
+        """
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+.sn-topbar{
+  position:sticky;top:0;inset-inline:0;z-index:1001;
+  display:flex;align-items:center;gap:.75rem;
+  padding:.6rem 1rem;backdrop-filter:blur(10px);
+  background:var(--card);
+}
+@media(max-width:600px){.sn-topbar{flex-wrap:wrap}}
+.sn-topbar input[type='text']{
+  flex:1;padding:.45rem .7rem;border-radius:8px;
+  border:1px solid var(--card);min-width:140px;
+  background:var(--bg);font-size:.9rem;
+}
+#drawer_btn{background:none;border:none;color:var(--accent);font-size:1.3rem;cursor:pointer;display:none}
+@media(max-width:768px){#drawer_btn{display:block}}
+.sn-bell{position:relative;background:none;border:none;font-size:1.3rem;color:var(--accent);cursor:pointer}
+.sn-bell::before{font-family:"Font Awesome 6 Free";font-weight:900;content:"\\f0f3"}
+.sn-bell[data-count]::after{
+  content:attr(data-count);position:absolute;top:-.35rem;right:-.45rem;
+  background:var(--accent);color:var(--bg);border-radius:999px;padding:0 .33rem;
+  font-size:.62rem;line-height:1;
+}
+</style>
+<div class="sn-topbar">
+""",
+        unsafe_allow_html=True,
+    )
+
+    # layout: menu | logo | search | bell | beta | avatar
+    cols = st.columns([1, 1, 4, 1, 2, 1])
+    if len(cols) < 6:  # mocked st.columns
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+    menu_col, logo_col, search_col, bell_col, beta_col, avatar_col = cols
+
+    checked = "checked" if st.session_state.get("_drawer_open", True) else ""
+    drawer_html = f"""
+        <input type='checkbox' id='drawer_toggle' {checked} hidden>
+        <label for='drawer_toggle' id='drawer_btn'>☰</label>
+        <script>
+          const dt=document.getElementById('drawer_toggle');
+          const saved = localStorage.getItem('drawer_open');
+          if(dt && saved !== null) dt.checked = saved === 'true';
+          function storeDrawer(){{
+            if(dt) localStorage.setItem('drawer_open', dt.checked);
+          }}
+          dt?.addEventListener('change', storeDrawer);
+        </script>
+    """
+    menu_col.markdown(drawer_html, unsafe_allow_html=True)
+
+    logo_col.markdown(
+        '<i class="fa-solid fa-rocket fa-lg"></i>', unsafe_allow_html=True
+    )
+
+    # search box with suggestions
+    pid = st.session_state.get("active_page", "global")
+    q_key = f"{pid}_search"
+    q = search_col.text_input(
+        "Search", placeholder="Search…", key=q_key, label_visibility="hidden"
+    )
+    if q:
+        recent = st.session_state.setdefault("_recent_q", [])
+        if q not in recent:
+            recent.append(q)
+            st.session_state["_recent_q"] = recent[-6:]
+
+    if sugs := st.session_state.get("_recent_q"):
+        options = "".join(f"<option value='{s}'></option>" for s in sugs)
+        data_list = f"<datalist id='recent-sugs'>{options}</datalist>"
+        script = (
+            "<script>window.parent.document.querySelector("
+            "'.sn-topbar input[type=text]')?.setAttribute('list','recent-sugs');"
+            "</script>"
+        )
+        search_col.markdown(data_list + script, unsafe_allow_html=True)
+
+    # notifications bell
+    n_notes = len(st.session_state.get("notifications", []))
+    bell_html = (
+        f'<button class="sn-bell" data-count="{n_notes or ""}" '
+        'aria-label="Notifications"></button>'
+    )
+    bell_col.markdown(bell_html, unsafe_allow_html=True)
+    with bell_col.popover("Notifications"):
+        if n_notes:
+            for note in st.session_state["notifications"]:
+                st.write(note)
+        else:
+            st.write("No notifications")
+
+    # beta toggle
+    beta = beta_col.toggle("Beta", value=st.session_state.get("beta_mode", False))
+    st.session_state["beta_mode"] = beta
+    try:
+        st.query_params["beta"] = "1" if beta else "0"
+    except Exception:
+        pass
+
+    # avatar placeholder
+    avatar_col.markdown(
+        '<i class="fa-regular fa-circle-user fa-lg"></i>', unsafe_allow_html=True
+    )
+
+    # close .sn-topbar
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    render_bottom_tab_bar()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SIDEBAR NAV
+# ═══════════════════════════════════════════════════════════════════════════════
+def _render_sidebar_nav(
+    page_links: Iterable[str] | Dict[str, str],
+    icons: Optional[Iterable[str]] = None,
+    *,
+    key: Optional[str] = None,
+    default: Optional[str] = None,
+    session_key: str = "active_page",
+) -> str:
+    """Vertical sidebar nav; returns the *label* of the chosen page."""
+    raw_pairs = (
+        list(page_links.items())
+        if isinstance(page_links, dict)
+        else [(None, p) for p in page_links]
+    )
+    icons = list(icons or [None] * len(raw_pairs))
+    key = key or f"nav_{uuid4().hex}"
+
+    mapping: Dict[str, str] = {}
+    icon_map: Dict[str, Optional[str]] = {}
+    for (lbl, path), ico in zip(raw_pairs, icons):
+        slug = Path(path).stem.lower()
+        lbl = lbl or Path(path).stem.replace("_", " ").title()
+        if lbl in mapping:  # de-dupe – keep first
+            continue
+        mapping[lbl] = slug
+        icon_map[lbl] = ico
+
+    # keep only pages that actually exist
+    choices: list[tuple[str, str]] = []
+    for lbl, slug in mapping.items():
+        page_ok = any(
+            (ROOT_DIR / slug).with_suffix(".py").exists()
+            or (PAGES_DIR / slug).with_suffix(".py").exists()
+        )
+        if page_ok:
+            choices.append((lbl, slug))
+
+    if not choices:
+        return ""
+
+    default_lbl = default or choices[0][0]
+    active_lbl = st.session_state.get(session_key, default_lbl)
+    if active_lbl not in [label for label, _ in choices]:
+        active_lbl = default_lbl
+    default_idx = [label for label, _ in choices].index(active_lbl)
+
+    with st.sidebar:
+        st.markdown(SIDEBAR_STYLES, unsafe_allow_html=True)
+        st.markdown("<div class='glass-card sidebar-nav'>", unsafe_allow_html=True)
+
+        # 1️⃣ native page_link if available (Streamlit 1.29+)
+        if hasattr(st.sidebar, "page_link"):
+            for lbl, slug in choices:
+                ico = icon_map.get(lbl) or _EMOJI_FALLBACK
+                st.sidebar.page_link(f"/pages/{slug}.py", label=lbl, icon=ico, help=lbl)
+            chosen = active_lbl
+
+        # 2️⃣ pretty option-menu
+        elif USE_OPTION_MENU:
+            chosen = option_menu(
+                menu_title="",
+                options=[label for label, _ in choices],
+                icons=[icon_map.get(label) or "dot" for label, _ in choices],
+                orientation="vertical",
+                key=key,
+                default_index=default_idx,
+            )
+
+        # 3️⃣ fallback radio
+        else:
+            radio_labels = [
+                f"{icon_map.get(lbl) or ''} {lbl}".strip() for lbl, _ in choices
+            ]
+            picked = st.radio(
+                "Navigation",
+                radio_labels,
+                index=default_idx,
+                key=key,
+                label_visibility="collapsed",
+            )
+            chosen = choices[radio_labels.index(picked)][0]
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.session_state[session_key] = chosen
+    return chosen
+
+
+# public alias (+ legacy compat)
+def render_sidebar_nav(*a, **kw):
+    """Wrapper so legacy code using *render_modern_sidebar* keeps working."""
+    if globals().get("render_modern_sidebar") is not render_sidebar_nav:
+        return globals()["render_modern_sidebar"](*a, **kw)
+    return _render_sidebar_nav(*a, **kw)
+
+
+render_modern_sidebar = render_sidebar_nav  # legacy alias
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TITLE & BADGE
+# ═══════════════════════════════════════════════════════════════════════════════
+def render_title_bar(icon: str, label: str) -> None:
+    """Large H1 with emoji/icon."""
+    st.markdown(
+        f"<h1 style='display:flex;align-items:center;gap:.6rem;margin-bottom:1rem'>"
+        f"<span>{icon}</span><span>{label}</span></h1>",
+        unsafe_allow_html=True,
+    )
+
+
+def show_preview_badge(text: str = "Preview") -> None:
+    """Floating badge in the top-right corner."""
+    st.markdown(
+        f"<div style='position:fixed;top:1.1rem;right:1.1rem;"
+        f"background:var(--accent);color:var(--bg);padding:.28rem .6rem;border-radius:6px;"
+        f"box-shadow:0 2px 6px rgba(0,0,0,.15);z-index:999'>"
+        f"<i class='fa-solid fa-triangle-exclamation'></i>&nbsp;{text}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def render_bottom_tab_bar(position: str = "fixed") -> None:
+    """Bottom navigation bar for mobile screens.
+
+    Parameters
+    ----------
+    position : str
+        CSS ``position`` value for the tab bar (e.g., ``"fixed"`` or ``"static"``).
+    """
+    # Resolve theme accent safely
+    try:
+        accent = theme.get_accent_color()
+    except Exception:
+        # Fallback to a sensible default if theme access fails
+        try:
+            accent = theme.LIGHT_THEME.accent  # type: ignore[attr-defined]
+        except Exception:
+            accent = "#6C63FF"
+
+    # Resolve active tab & CSS position with safe fallbacks
+    try:
+        active = st.session_state.get("active_page", "home")
+    except Exception:
+        active = "home"
+
+    try:
+        css_position = st.session_state.get("tab_bar_position", position)
+    except Exception:
+        css_position = position
+
+    # Render, but never crash the UI if formatting fails
+    try:
+        st.markdown(
+            BOTTOM_TAB_TEMPLATE.format(
+                accent=accent, active=active, position=css_position
+            ),
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        return
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+__all__ = [
+    "main_container",
+    "sidebar_container",
+    "render_sidebar_nav",
+    "render_title_bar",
+    "show_preview_badge",
+    "render_profile_card",
+    "render_top_bar",
+    "render_bottom_tab_bar",
+]
+
+################################################################################
+# FILE: pages\__init__.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Streamlit page modules."""
+
+__all__ = []
+
+################################################################################
+# FILE: pages\agents.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+
+import streamlit as st
+from frontend.theme import apply_theme
+
+from agent_ui import render_agent_insights_tab
+from streamlit_helpers import theme_toggle, inject_global_styles
+
+__all__ = ["main", "render"]
+
+apply_theme("light")
+inject_global_styles()
+
+
+def main(main_container=None) -> None:
+    """
+    Render the Agents UI safely, with container fallback.
+
+    If no main_container is provided, uses Streamlit root context.
+    """
+    container = main_container if main_container is not None else st
+    theme_toggle("Dark Mode", key_suffix="agents")
+
+    try:
+        container.title("🤖 Agents")
+
+        agents = ["MetaValidator", "Guardian", "Resonance"]
+        selected_agent = container.selectbox("Select Agent", agents, key="agent_select")
+
+        if container.button("Test Agent", key="test_agent"):
+            container.success(f"✅ {selected_agent} agent test complete")
+            container.json(
+                {
+                    "agent": selected_agent,
+                    "status": "ok",
+                    "test": True,
+                }
+            )
+    except Exception as e:
+        container.error(f"❌ Failed to render Agents UI: {e}")
+
+    try:
+        render_agent_insights_tab(main_container=main_container)
+    except Exception as e:  # pragma: no cover - UI
+        st.error(f"Agent page error: {e}")
+        if st.button("Reset", key="agent_reset"):
+            st.rerun()
+
+
+def render() -> None:
+    """Wrapper to keep page loading consistent."""
+    main()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\ai_assist.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""AI assistance for VibeNodes."""
+
+try:
+    from nicegui import ui
+except Exception:  # pragma: no cover - fallback to Streamlit
+    ui = None  # type: ignore
+    import streamlit as st
+
+from utils.api import api_call, TOKEN
+from utils.styles import get_theme
+from utils.layout import page_container
+from .login import login_page
+
+
+@ui.page('/ai-assist/{vibenode_id}')
+async def ai_assist_page(vibenode_id: int):
+    """Get AI-generated help for a specific VibeNode."""
+    if not TOKEN:
+        ui.open(login_page)
+        return
+
+    THEME = get_theme()
+    with page_container(THEME):
+        ui.label('AI Assist').classes('text-2xl font-bold mb-4').style(
+            f'color: {THEME["accent"]};'
+        )
+
+        prompt = ui.textarea('Prompt for AI').classes('w-full mb-2')
+
+        async def get_ai_response():
+            data = {'prompt': prompt.value}
+            resp = await api_call('POST', f'/ai-assist/{vibenode_id}', data)
+            if resp:
+                ui.label('AI Response:').classes('mb-2')
+                ui.label(resp['response']).classes('text-sm break-words')
+            else:
+                ui.notify('Action failed', color='negative')
+
+        ui.button('Get AI Help', on_click=get_ai_response).classes('w-full').style(
+            f'background: {THEME["primary"]}; color: {THEME["text"]};'
+        )
+
+if ui is None:
+    def ai_assist_page(*_a, **_kw):
+        """Fallback when NiceGUI is unavailable."""
+        st.info('AI assist requires NiceGUI.')
+
+################################################################################
+# FILE: pages\animate_gaussian.py
+################################################################################
+# transcendental_resonance_frontend/tr_pages/animate_gaussian.py
+"""Diagnostics and Gaussian animation page for supernNova_2177."""
+
+import streamlit as st
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+import networkx as nx
+import time
+import math
+import io
+import json
+import difflib
+import logging
+import os
+from pathlib import Path
+from datetime import datetime, timezone
+
+# Suppress warnings
+import warnings
+warnings.filterwarnings("ignore")
+
+# Logging setup
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Constants and configs (simplified)
+ROOT_DIR = Path(__file__).parent.parent.parent
+PAGES_DIR = ROOT_DIR / "pages"
+ACCENT_COLOR = "#4f8bf9"
+OFFLINE_MODE = os.getenv("OFFLINE_MODE", "0") == "1"
+UI_DEBUG = os.getenv("UI_DEBUG", "0") == "1"
+
+# Sample data path (adjust if needed)
+sample_path = ROOT_DIR / "sample_validations.json"
+
+# Fallback configs if modules missing
+class VCConfig:
+    HIGH_RISK_THRESHOLD = 0.7
+    MEDIUM_RISK_THRESHOLD = 0.4
+
+class Config:
+    METRICS_PORT = 1234
+
+# Helper functions
+def alert(message, level="info"):
+    if level == "error":
+        st.error(message)
+    elif level == "warning":
+        st.warning(message)
+    else:
+        st.info(message)
+
+def header(text, layout="wide"):
+    st.header(text)
+
+def show_preview_badge(text):
+    st.markdown(f"<span style='background:yellow;color:black;padding:0.2em;'>{text}</span>", unsafe_allow_html=True)
+
+def normalize_choice(choice):
+    return choice.lower().replace(" ", "_")
+
+def render_title_bar(icon, title):
+    st.markdown(f"### {icon} {title}")
+
+def render_instagram_grid(items, cols=3):
+    columns = st.columns(cols)
+    for i, item in enumerate(items):
+        with columns[i % cols]:
+            if "image" in item:
+                st.image(item["image"])
+            st.caption(item.get("text", ""))
+            st.write(f"Likes: {item.get('likes', 0)}")
+
+def render_stats_section(stats):
+    cols = st.columns(len(stats))
+    for col, (label, value) in zip(cols, stats.items()):
+        col.metric(label, value)
+
+# Stubbed functions for missing modules
+def get_active_user():
+    return {"username": "Guest", "profile_pic": "https://via.placeholder.com/64"}
+
+def ensure_pages(pages, pages_dir):
+    pass  # Skip for now
+
+def ensure_database_exists():
+    return True
+
+# Analysis functions (simplified with fallbacks)
+def run_analysis(validations=None, layout="force"):
+    if validations is None:
+        try:
+            with open(sample_path) as f:
+                validations = json.load(f).get("validations", [])
+        except FileNotFoundError:
+            validations = [{"validator": "A", "target": "B", "score": 0.5}]
+            alert("Using sample data as file not found.", "warning")
+
+    # Mock integrity analysis
+    consensus = np.mean([v["score"] for v in validations if "score" in v])
+    score = np.random.uniform(0.5, 1.0)
+    result = {
+        "consensus_score": consensus,
+        "integrity_analysis": {"overall_integrity_score": score, "risk_level": "low" if score > 0.7 else "medium"},
+        "recommendations": ["Check validators", "Run again"]
+    }
+
+    st.metric("Consensus Score", round(consensus, 3))
+    color = "green" if score >= VCConfig.HIGH_RISK_THRESHOLD else "yellow" if score >= VCConfig.MEDIUM_RISK_THRESHOLD else "red"
+    st.markdown(f"Integrity Score: <span style='background:{color};color:white;padding:0.25em;'>{score:.2f}</span>", unsafe_allow_html=True)
+
+    # Graph (if networkx and plotly available)
+    try:
+        G = nx.Graph()
+        for v in validations:
+            G.add_edge(v.get("validator", "A"), v.get("target", "B"), weight=v.get("score", 0.5))
+        pos = nx.spring_layout(G) if layout == "force" else nx.circular_layout(G)
+        edge_x, edge_y = [], []
+        for edge in G.edges():
+            x0, y0 = pos[edge[0]]
+            x1, y1 = pos[edge[1]]
+            edge_x += [x0, x1, None]
+            edge_y += [y0, y1, None]
+        node_x, node_y = [pos[n][0] for n in G.nodes()], [pos[n][1] for n in G.nodes()]
+
+        fig = go.Figure(data=[
+            go.Scatter(x=edge_x, y=edge_y, mode='lines', line=dict(width=0.5, color='#888')),
+            go.Scatter(x=node_x, y=node_y, mode='markers', marker=dict(size=10, color='blue'))
+        ])
+        st.plotly_chart(fig)
+    except ImportError:
+        st.info("Graph visualization unavailable (missing networkx/plotly).")
+
+    return result
+
+def generate_explanation(result):
+    integrity = result.get("integrity_analysis", {})
+    lines = [f"Risk level: {integrity.get('risk_level', 'unknown')}", f"Integrity score: {integrity.get('overall_integrity_score', 'N/A')}"]
+    if result.get("recommendations"):
+        lines.append("Recommendations:")
+        lines += [f"- {r}" for r in result["recommendations"]]
+    return "\n".join(lines)
+
+# Main page function
+def main():
+    render_title_bar("📊", "Animate Gaussian Diagnostics")
+    st.markdown("This page shows diagnostics and a Gaussian-based analysis graph.")
+
+    # Diagnostics sections
+    header("Diagnostics")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.info("📁 Expected Pages Directory")
+        st.code(str(PAGES_DIR))
+    with col2:
+        st.info("🔍 Directory Status")
+        if PAGES_DIR.exists():
+            st.success("Directory exists")
+        else:
+            st.error("Directory missing")
+
+    if st.button("Run Validation Analysis"):
+        result = run_analysis()
+        st.json(result) if UI_DEBUG else None
+        if st.button("Explain This Score"):
+            st.markdown(generate_explanation(result))
+
+    if st.button("Show Boot Diagnostics"):
+        st.success("Boot OK (placeholder).")
+
+    # Fallback renders if needed
+    if OFFLINE_MODE:
+        st.toast("Offline mode: using mock data.")
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\chat.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Chat page with text, video, and voice features."""
+
+import streamlit as st
+from frontend.theme import apply_theme
+
+from streamlit_helpers import safe_container, header, theme_toggle, inject_global_styles
+from status_indicator import render_status_icon
+from chat_ui import render_chat_interface
+
+apply_theme("light")
+inject_global_styles()
+
+
+def main(main_container=None) -> None:
+    """Render the chat page."""
+    if main_container is None:
+        main_container = st
+    page = "chat"
+    st.session_state["active_page"] = page
+    theme_toggle("Dark Mode", key_suffix=page)
+
+    container_ctx = safe_container(main_container)
+    with container_ctx:
+        header_col, status_col = st.columns([0.8, 0.2])
+        with header_col:
+            header("💬 Chat")
+        with status_col:
+            render_status_icon()
+        render_chat_interface()
+
+
+def render() -> None:
+    """Wrapper to keep page loading consistent."""
+    main()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\decisions.py
+################################################################################
+import os, json, urllib.request
+import streamlit as st
+
+def _use_backend(): return os.getenv("USE_REAL_BACKEND","0").lower() in {"1","true","yes"}
+def _burl(): return os.getenv("BACKEND_URL","http://127.0.0.1:8000")
+def _get(path):
+    with urllib.request.urlopen(_burl()+path) as r:
+        import json; return json.loads(r.read().decode("utf-8"))
+def _post(path, payload):
+    import json; data=json.dumps(payload).encode("utf-8")
+    import urllib.request as ur; req=ur.Request(_burl()+path, data=data, headers={"Content-Type":"application/json"})
+    with ur.urlopen(req) as r: return json.loads(r.read().decode("utf-8"))
+
+try:
+    from external_services.fake_api import list_proposals, tally_proposal, decide, list_decisions
+except Exception:
+    def list_proposals(): return []
+    def tally_proposal(pid): return {"up":0,"down":0}
+    def decide(pid, threshold=0.6): return {"proposal_id":pid, "status":"rejected"}
+    def list_decisions(): return []
+
+def main():
+    st.subheader("Decisions")
+    st.caption("Rule: accept when 👍 / (👍+👎) ≥ 60% (and at least 1 vote).")
+
+    if _use_backend():
+        proposals = _get("/proposals")
+    else:
+        proposals = list_proposals()
+
+    for p in proposals:
+        pid = p["id"]
+        tally = (_get(f"/proposals/{pid}/tally") if _use_backend() else tally_proposal(pid))
+        up, down = tally.get("up",0), tally.get("down",0)
+        total = up+down
+        pct = (up/total*100) if total else 0
+        st.write(f"**{p['title']}** — {up} 👍 / {down} 👎  ({pct:.0f}%)")
+        if st.button(f"Compute decision for #{pid}", key=f"dec_{pid}"):
+            res = (_post(f"/decide/{pid}", {}) if _use_backend() else decide(pid))
+            st.success(f"Decision: {res.get('status').upper()}")
+
+    st.divider()
+    st.markdown("### Decisions log")
+    out = (_get("/decisions") if _use_backend() else list_decisions())
+    for d in out:
+        st.write(f"#{d['id']} — proposal {d['proposal_id']} → **{d['status']}**")
+
+def render(): main()
+
+################################################################################
+# FILE: pages\enter_metaverse.py
+################################################################################
+# pages/enter_metaverse.py
+import streamlit as st
+import streamlit.components.v1 as components
+
+def main():
+    # ❗️Do NOT call st.set_page_config here; it's already set in ui.py.
+
+    # --- Session state defaults ---
+    st.session_state.setdefault("metaverse_launched", False)
+    st.session_state.setdefault("settings", {"difficulty": "Normal", "volume": 30})
+
+    # --- Global CSS for this page ---
+    st.markdown("""
+        <style>
+            body { background-color: #000; }
+            .stApp { background-color: #000; overflow: hidden; }
+            .main > div { padding: 0; }
+            .block-container { padding-top: 2rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
+            header, #MainMenu, footer { display: none !important; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # --- Stage 1: Lobby ---
+    if not st.session_state.metaverse_launched:
+        st.markdown("""
+            <div style="text-align: center; z-index: 10;">
+                <h1 style="
+                    font-family: 'Courier New', monospace;
+                    background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+                    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+                    font-size: 3.5em; font-weight: bold; text-shadow: 0 0 30px rgba(255,0,255,0.7);
+                    animation: pulse 2.5s infinite;
+                ">SUPERNOVA METAVERSE</h1>
+                <p style="color: #00ffff; font-size: 1.2em; margin-top: -15px; letter-spacing: 2px;">
+                    🎮 K-POP × RETRO GAMING × CYBERPUNK 🎮
+                </p>
+            </div>
+            <style>
+                @keyframes pulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.85; transform:scale(1.02);} }
+            </style>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div style="height: 50px;"></div>', unsafe_allow_html=True)
+
+        col1, col2, col3 = st.columns([1.5, 2, 1.5])
+        with col2:
+            st.markdown("<h3 style='text-align:center; color:#00ffff;'>🎛️ GAME SETUP</h3>", unsafe_allow_html=True)
+            # update settings
+            difficulty = st.select_slider("🔥 Difficulty", ["Easy", "Normal", "Hard"], value=st.session_state.settings["difficulty"])
+            volume = st.slider("🔊 Music Volume", 0, 100, st.session_state.settings["volume"])
+            st.session_state.settings.update({"difficulty": difficulty, "volume": volume})
+
+            st.markdown('<div style="height: 20px;"></div>', unsafe_allow_html=True)
+            st.markdown('<div style="display:flex; justify-content:center;">', unsafe_allow_html=True)
+
+            # ✅ explicit click handler + rerun
+            if st.button("🚀 ENTER THE METAVERSE 🚀", use_container_width=True):
+                st.session_state.metaverse_launched = True
+                st.rerun()
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        return  # stop here in lobby
+
+    # --- Stage 2: Metaverse ---
+    settings = st.session_state.settings
+    three_js_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <style>
+        body {{ margin:0; overflow:hidden; background:#000; cursor:crosshair; }}
+        #canvas-container {{ width:100vw; height:100vh; position:fixed; top:0; left:0; }}
+        #loading-screen, #game-over-screen {{
+          position:fixed; top:0; left:0; width:100%; height:100%;
+          background:rgba(0,0,0,0.8); display:flex; flex-direction:column; justify-content:center; align-items:center;
+          z-index:1000; font-family:'Courier New', monospace; color:#fff;
+        }}
+        #game-over-screen {{ display:none; }}
+        #game-over-title {{ font-size:3em; color:#ff0066; text-shadow:0 0 10px #ff0066; }}
+        #final-score {{ font-size:1.5em; margin:20px 0; }}
+        #restart-button {{
+          padding:10px 20px; border:2px solid #00ffff; color:#00ffff; background:transparent; cursor:pointer;
+          font-size:1em; text-transform:uppercase; letter-spacing:2px;
+        }}
+        .loader {{ width:100px; height:100px; border:4px solid transparent; border-top:4px solid #ff00ff;
+                   border-right:4px solid #00ffff; border-radius:50%; animation:spin 1s linear infinite; }}
+        @keyframes spin {{ 100% {{ transform:rotate(360deg); }} }}
+        #loading-text {{ margin-top:25px; font-size:1.1em; letter-spacing:4px; animation:glow 2s ease-in-out infinite; }}
+        @keyframes glow {{ 0%,100% {{ text-shadow:0 0 10px #ff00ff; }} 50% {{ text-shadow:0 0 20px #00ffff; }} }}
+        #hud {{ position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10; color:#fff;
+                font-family:'Courier New', monospace; }}
+        #score {{ position:absolute; top:20px; left:20px; font-size:24px; color:#ffff00; }}
+        #health-bar {{ position:absolute; top:20px; left:50%; transform:translateX(-50%); width:300px; height:20px;
+                       border:2px solid #ff00ff; background:rgba(0,0,0,0.5); }}
+        #health-fill {{ height:100%; background:#ff0066; transition:width .3s ease; }}
+        #mobile-controls {{ display:none; }}
+        #joystick-zone {{ position:fixed; left:80px; bottom:80px; width:120px; height:120px; pointer-events:auto; }}
+        #mobile-actions {{ position:fixed; right:20px; bottom:50px; display:flex; flex-direction:column; gap:20px; pointer-events:auto; }}
+        .mobile-button {{ width:60px; height:60px; border:2px solid #00ffff; border-radius:50%; background:rgba(0,255,255,.2);}}
+      </style>
+    </head>
+    <body>
+      <div id="loading-screen"><div class="loader"></div><div id="loading-text">INITIALIZING</div></div>
+      <div id="game-over-screen">
+        <div id="game-over-title">SYSTEM FAILURE</div>
+        <div id="final-score">SCORE: 0</div>
+        <button id="restart-button">REINITIALIZE</button>
+      </div>
+      <div id="canvas-container"></div>
+      <div id="hud">
+        <div id="score">SCORE: 0</div>
+        <div id="health-bar"><div id="health-fill"></div></div>
+      </div>
+      <div id="mobile-controls">
+        <div id="joystick-zone"></div>
+        <div id="mobile-actions">
+          <div id="mobile-dash" class="mobile-button"></div>
+          <div id="mobile-jump" class="mobile-button"></div>
+        </div>
+      </div>
+
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.1/dist/nipplejs.min.js"></script>
+      <script type="module">
+        import {{ PointerLockControls }} from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/controls/PointerLockControls.js';
+
+        let scene, camera, renderer, clock, p_controls, audioManager, gameManager, player;
+        const entities = []; const keyMap = {{}};
+        const CONFIG = {{ difficulty: '{settings["difficulty"]}', volume: {settings["volume"]} / 100 }};
+
+        class AudioManager {{
+          constructor(){{
+            this.sounds = new Howl({{
+              src: ['data:audio/mp3;base64,SUQzBAAAAAA…'],  /* tiny silent loop placeholder */
+              sprite: {{ music:[0,60000,true], jump:[1000,200], dash:[2000,500], collect:[3000,300], damage:[4000,400], gameOver:[5000,1000] }},
+              volume: CONFIG.volume
+            }});
+          }}
+          play(n){{ this.sounds.play(n); }}
+        }}
+
+        class Player {{
+          constructor(){{
+            this.mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,2,16),
+                                       new THREE.MeshStandardMaterial({{color:0xffffff, roughness:.2, metalness:.8}}));
+            this.mesh.position.y = 10;
+            this.velocity = new THREE.Vector3(); this.onGround = false; this.dashCooldown = 0; this.health = 100;
+            this.mesh.add(new THREE.PointLight(0x00ffff, 2, 20));
+            scene.add(this.mesh);
+          }}
+          update(delta, dir){{ if(this.health<=0) return;
+            this.dashCooldown = Math.max(0, this.dashCooldown - delta);
+            this.velocity.x += dir.x * 200 * delta; this.velocity.z += dir.z * 200 * delta; this.velocity.y -= 25 * delta;
+            this.mesh.position.add(this.velocity.clone().multiplyScalar(delta));
+            if (this.mesh.position.y < 1) {{ this.mesh.position.y = 1; this.velocity.y = 0; this.onGround = true; }} else {{ this.onGround = false; }}
+            this.velocity.x *= 0.9; this.velocity.z *= 0.9;
+          }}
+          jump(){{ if(this.onGround){{ this.velocity.y = 10; audioManager.play('jump'); }} }}
+          dash(){{ if(this.dashCooldown<=0){{ const d = p_controls.getDirection(new THREE.Vector3()); if(d.lengthSq()===0) d.z = -1;
+                     this.velocity.add(d.multiplyScalar(20)); this.dashCooldown = 2; audioManager.play('dash'); }} }}
+          takeDamage(a){{ this.health = Math.max(0, this.health - a);
+            document.getElementById('health-fill').style.width = this.health + '%';
+            audioManager.play('damage'); if(this.health<=0) gameManager.gameOver();
+          }}
+        }}
+
+        class Enemy {{
+          constructor(){{
+            this.mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2,0),
+              new THREE.MeshStandardMaterial({{color:0xff0066,emissive:0xff0066,roughness:.5}}));
+            this.mesh.position.set((Math.random()-0.5)*100, 1.2, (Math.random()-0.5)*100);
+            scene.add(this.mesh); entities.push(this);
+          }}
+          update(delta, ppos){{ const v = ppos.clone().sub(this.mesh.position).normalize();
+            this.mesh.position.add(v.multiplyScalar(2.5*delta));
+            if(this.mesh.position.distanceTo(ppos) < 1.5) player.takeDamage(15*delta);
+          }}
+        }}
+
+        class Collectible {{
+          constructor(){{
+            this.mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.7),
+              new THREE.MeshStandardMaterial({{color:0xffff00,emissive:0xffff00,emissiveIntensity:.8}}));
+            this.respawn(); scene.add(this.mesh); entities.push(this);
+          }}
+          update(delta, ppos){{ this.mesh.rotation.y += delta;
+            if(this.mesh.position.distanceTo(ppos) < 2){{ gameManager.addScore(100); this.respawn(); audioManager.play('collect'); }}
+          }}
+          respawn(){{ this.mesh.position.set((Math.random()-0.5)*120, 1.5, (Math.random()-0.5)*120); }}
+        }}
+
+        class GameManager {{
+          constructor(){{ this.score = 0; this.isGameOver = false; }}
+          addScore(n){{ this.score += n; document.getElementById('score').innerText = `SCORE: ${{this.score}}`; }}
+          gameOver(){{ this.isGameOver = true; p_controls.unlock(); audioManager.play('gameOver');
+            document.getElementById('final-score').innerText = `FINAL SCORE: ${{this.score}}`;
+            document.getElementById('game-over-screen').style.display = 'flex';
+          }}
+          restart(){{ this.score = 0; this.isGameOver = false; player.health = 100;
+            player.mesh.position.set(0,10,0); player.velocity.set(0,0,0);
+            document.getElementById('health-fill').style.width = '100%';
+            this.addScore(0); document.getElementById('game-over-screen').style.display = 'none'; p_controls.lock();
+          }}
+        }}
+
+        function init(){{
+          audioManager = new AudioManager(); gameManager = new GameManager();
+          scene = new THREE.Scene();
+          camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+          renderer = new THREE.WebGLRenderer({{ antialias:true }});
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          document.getElementById('canvas-container').appendChild(renderer.domElement);
+          clock = new THREE.Clock();
+
+          scene.add(new THREE.GridHelper(200, 50, 0x00ffff, 0x888888));
+          scene.add(new THREE.AmbientLight(0x400080, 1.2));
+
+          player = new Player();
+          const enemyCount = CONFIG.difficulty==='Easy' ? 3 : (CONFIG.difficulty==='Normal' ? 6 : 10);
+          for(let i=0;i<enemyCount;i++) new Enemy();
+          for(let i=0;i<15;i++) new Collectible();
+
+          p_controls = new PointerLockControls(camera, renderer.domElement);
+          const isMobile = 'ontouchstart' in window;
+          if(isMobile){{
+            document.getElementById('mobile-controls').style.display='block';
+            const joystick = nipplejs.create({{ zone: document.getElementById('joystick-zone'), color:'magenta' }});
+            joystick.on('move', (evt, data)=>{{ keyMap.joystickAngle=data.angle.radian; keyMap.joystickForce=data.force/10; }});
+            joystick.on('end', ()=>{{ keyMap.joystickForce=0; }});
+            document.getElementById('mobile-jump').addEventListener('touchstart', ()=> keyMap['Space']=true);
+            document.getElementById('mobile-dash').addEventListener('touchstart', ()=> keyMap['ShiftLeft']=true);
+            document.getElementById('mobile-dash').addEventListener('touchend', ()=> keyMap['ShiftLeft']=false);
+          }} else {{
+            renderer.domElement.addEventListener('click', ()=> p_controls.lock());
+          }}
+
+          document.addEventListener('keydown', e=> keyMap[e.code]=true);
+          document.addEventListener('keyup', e=> keyMap[e.code]=false);
+          document.getElementById('restart-button').onclick = ()=> gameManager.restart();
+          window.addEventListener('resize', ()=>{{
+            camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+          }});
+
+          const loading = document.getElementById('loading-screen');
+          loading.style.opacity = '0';
+          setTimeout(()=>{{
+            loading.style.display='none';
+            audioManager.play('music');
+            if(!isMobile) p_controls.lock();
+            animate();
+          }}, 1500);
+        }}
+
+        function animate(){{
+          if(gameManager.isGameOver) return;
+          requestAnimationFrame(animate);
+
+          const delta = Math.min(clock.getDelta(), 0.1);
+          const dir = new THREE.Vector3();
+          const speed = 10 * delta;
+
+          if(p_controls.isLocked){{
+            const f = keyMap['KeyW'] ? 1 : (keyMap['KeyS'] ? -1 : 0);
+            const r = keyMap['KeyD'] ? 1 : (keyMap['KeyA'] ? -1 : 0);
+            p_controls.moveForward(f * speed);
+            p_controls.moveRight(r * speed);
+            dir.set(r, 0, -f).normalize();
+          }} else if (keyMap.joystickForce > 0){{
+            const angle = keyMap.joystickAngle, force = keyMap.joystickForce;
+            camera.getWorldDirection(dir);
+            const rightVec = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
+            const forwardVec = new THREE.Vector3().crossVectors(rightVec, camera.up).normalize();
+            const moveX = Math.cos(angle) * force * speed;
+            const moveZ = Math.sin(angle) * force * speed * -1;
+            player.velocity.x += dir.x * moveZ + rightVec.x * moveX;
+            player.velocity.z += dir.z * moveZ + rightVec.z * moveX;
+          }}
+
+          player.update(delta, dir);
+          if (keyMap['Space']) player.jump();
+          if (keyMap['ShiftLeft']) player.dash();
+          if ('ontouchstart' in window) keyMap['Space'] = false;
+
+          entities.forEach(e => e.update(delta, player.mesh.position));
+
+          if(!p_controls.isLocked){{
+            camera.position.lerp(player.mesh.position.clone().add(new THREE.Vector3(0,5,10)), 0.1);
+            camera.lookAt(player.mesh.position);
+          }}
+
+          renderer.render(scene, camera);
+        }}
+
+        init();
+      </script>
+    </body>
+    </html>
+    """
+    components.html(three_js_code, height=1000, scrolling=False)
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\execution.py
+################################################################################
+import os, json, urllib.request
+import streamlit as st
+
+def _use_backend(): return os.getenv("USE_REAL_BACKEND","0").lower() in {"1","true","yes"}
+def _burl(): return os.getenv("BACKEND_URL","http://127.0.0.1:8000")
+def _get(path):
+    with urllib.request.urlopen(_burl()+path) as r:
+        import json; return json.loads(r.read().decode("utf-8"))
+def _post(path, payload):
+    import json; data=json.dumps(payload).encode("utf-8")
+    import urllib.request as ur; req=ur.Request(_burl()+path, data=data, headers={"Content-Type":"application/json"})
+    with ur.urlopen(req) as r: return json.loads(r.read().decode("utf-8"))
+
+try:
+    from external_services.fake_api import list_decisions, create_run, list_runs
+except Exception:
+    def list_decisions(): return []
+    def create_run(decision_id): return {"id":0,"status":"done"}
+    def list_runs(): return []
+
+def main():
+    st.subheader("Execution")
+    st.caption("Execute ACCEPTED decisions (simulated).")
+
+    decs = _get("/decisions") if _use_backend() else list_decisions()
+    for d in decs:
+        if d.get("status") != "accepted":
+            continue
+        did = d["id"]
+        if st.button(f"Execute decision #{did}", key=f"exec_{did}"):
+            res = (_post("/runs", {"decision_id":did}) if _use_backend() else create_run(did))
+            st.success(f"Run #{res['id']} created (status: {res['status']})")
+
+    st.divider()
+    st.markdown("### Runs")
+    runs = _get("/runs") if _use_backend() else list_runs()
+    for r in runs:
+        st.write(f"Run #{r['id']} — decision {r['decision_id']} — **{r['status']}**")
+
+def render(): main()
+
+################################################################################
+# FILE: pages\feed.py
+################################################################################
+# pages/feed.py
+
+import streamlit as st
+import numpy as np
+from faker import Faker
+import time
+import random
+
+fake = Faker()
+
+@st.cache_data
+def generate_post_data(num_posts=30):
+    """Generates a large batch of post data."""
+    posts = []
+    for i in range(num_posts):
+        name = fake.name()
+        seed = name.replace(" ", "") + str(random.randint(0, 99999))
+        posts.append({
+            "id": f"post_{i}_{int(time.time())}",
+            "author_name": name,
+            "author_title": f"{fake.job()} at {fake.company()} • {random.choice(['1st', '2nd', '3rd'])}",
+            "author_avatar": f"https://api.dicebear.com/7.x/thumbs/svg?seed={seed}",
+            "post_text": fake.paragraph(nb_sentences=random.randint(1, 4)),
+            "image_url": random.choice([None, f"https://picsum.photos/800/400?random={np.random.randint(1, 1000)}"]),
+            "edited": random.choice([True, False]),
+            "promoted": random.choice([True, False]),
+            "likes": np.random.randint(10, 500),
+            "comments": np.random.randint(0, 100),
+            "reposts": np.random.randint(0, 50),
+        })
+    return posts
+
+def render_post(post):
+    """Renders a single post card."""
+    st.markdown('<div class="content-card">', unsafe_allow_html=True)
+
+    col1, col2 = st.columns([0.15, 0.85])
+    with col1:
+        if post["author_avatar"]:
+            st.image(post["author_avatar"], width=48)
+    with col2:
+        st.subheader(post["author_name"])
+        st.caption(post["author_title"])
+
+    if post["promoted"]:
+        st.caption("Promoted")
+
+    st.write(post["post_text"])
+
+    if post["image_url"]:
+        st.image(post["image_url"], use_container_width=True)
+
+    edited_text = " • Edited" if post["edited"] else ""
+    st.caption(f"{post['likes']} likes • {post['comments']} comments • {post['reposts']} reposts{edited_text}")
+
+    like_col, comment_col, repost_col, send_col = st.columns(4)
+    with like_col:
+        st.button("👍 Like", key=f"like_{post['id']}", use_container_width=True)
+    with comment_col:
+        st.button("💬 Comment", key=f"comment_{post['id']}", use_container_width=True)
+    with repost_col:
+        st.button("🔁 Repost", key=f"repost_{post['id']}", use_container_width=True)
+    with send_col:
+        st.button("➡️ Send", key=f"send_{post['id']}", use_container_width=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def main():
+    st.markdown("### Your Feed ↩️")
+    st.info("Prototype feed. All content below is AI-generated placeholder data for layout testing.")
+
+    # Init session vars
+    if "feed_posts" not in st.session_state:
+        st.session_state.feed_posts = generate_post_data()
+    if "feed_page" not in st.session_state:
+        st.session_state.feed_page = 1
+
+    page_size = 5
+    max_page = (len(st.session_state.feed_posts) + page_size - 1) // page_size
+    start = 0
+    end = page_size * st.session_state.feed_page
+
+    for post in st.session_state.feed_posts[start:end]:
+        render_post(post)
+
+    if st.session_state.feed_page < max_page:
+        if st.button("🔄 Load more"):
+            st.session_state.feed_page += 1
+    else:
+        st.success("You've reached the end of the demo feed.")
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\login.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Login and registration pages for Transcendental Resonance."""
+
+try:
+    from nicegui import ui
+except Exception:  # pragma: no cover - fallback to Streamlit
+    ui = None  # type: ignore
+    import streamlit as st
+
+from utils.api import api_call, set_token
+from utils.styles import get_theme
+
+
+@ui.page('/')
+async def login_page():
+    """Render the login form and handle authentication."""
+    THEME = get_theme()
+    with ui.column().classes('w-full max-w-md mx-auto p-4').style(
+        f'background: {THEME["gradient"]}; color: {THEME["text"]};'
+    ):
+        ui.label('Transcendental Resonance').classes(
+            'text-3xl font-bold text-center mb-4'
+        ).style(f'color: {THEME["accent"]};')
+
+        username = ui.input('Username').classes('w-full mb-2')
+        password = ui.input('Password', password=True).classes('w-full mb-2')
+
+        async def handle_login():
+            data = {'username': username.value, 'password': password.value}
+            resp = await api_call('POST', '/token', data=data)
+            if resp and 'access_token' in resp:
+                set_token(resp['access_token'])
+                ui.notify('Login successful!', color='positive')
+                from .profile import main as profile_page  # lazy import to avoid circular dependency
+                ui.open(profile_page)
+            else:
+                ui.notify('Login failed', color='negative')
+
+        ui.button('Login', on_click=handle_login).classes('w-full mb-4').style(
+            f'background: {THEME["primary"]}; color: {THEME["text"]};'
+        )
+
+        ui.label('New here? Register').classes('text-center cursor-pointer').on_click(
+            lambda: ui.open(register_page)
+        )
+
+        ui.label(
+            'This experimental social platform is not a financial product. '
+            'All metrics are symbolic with no real-world value.'
+        ).classes('text-xs text-center opacity-70 mt-2')
+
+
+@ui.page('/register')
+async def register_page():
+    """Render the registration form."""
+    THEME = get_theme()
+    with ui.column().classes('w-full max-w-md mx-auto p-4').style(
+        f'background: {THEME["gradient"]}; color: {THEME["text"]};'
+    ):
+        ui.label('Register').classes('text-2xl font-bold text-center mb-4').style(
+            f'color: {THEME["accent"]};'
+        )
+
+        username = ui.input('Username').classes('w-full mb-2')
+        email = ui.input('Email').classes('w-full mb-2')
+        password = ui.input('Password', password=True).classes('w-full mb-2')
+
+        async def handle_register():
+            data = {
+                'username': username.value,
+                'email': email.value,
+                'password': password.value,
+            }
+            resp = await api_call('POST', '/users/register', data)
+            if resp:
+                ui.notify('Registration successful! Please login.', color='positive')
+                ui.open(login_page)
+            else:
+                ui.notify('Registration failed', color='negative')
+
+        ui.button('Register', on_click=handle_register).classes('w-full mb-4').style(
+            f'background: {THEME["primary"]}; color: {THEME["text"]};'
+        )
+        ui.label('Back to Login').classes('text-center cursor-pointer').on_click(
+            lambda: ui.open(login_page)
+        )
+
+if ui is None:
+    def login_page():
+        """Fallback login page when NiceGUI is unavailable."""
+        st.title('Transcendental Resonance')
+        st.warning('NiceGUI not installed; limited functionality.')
+
+    def register_page():
+        """Fallback registration page when NiceGUI is unavailable."""
+        st.info('Registration not available without NiceGUI.')
+
+################################################################################
+# FILE: pages\messages.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Messages page – delegates to the reusable chat UI."""
+
+from __future__ import annotations
+
+import streamlit as st
+from frontend.theme import apply_theme
+from streamlit_helpers import theme_toggle, inject_global_styles
+from chat_ui import render_chat_interface
+
+apply_theme("light")
+inject_global_styles()
+
+
+def main(main_container=None) -> None:
+    """Render the chat interface inside the given container (or the page itself)."""
+    theme_toggle("Dark Mode", key_suffix="messages")
+    render_chat_interface(main_container)
+
+
+def render() -> None:  # for multipage apps that expect a `render` symbol
+    main()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\messages_center.py
+################################################################################
+# pages/messages_center.py
+
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Messages / Chat Center with placeholder data and modern UI."""
+
+from __future__ import annotations
+
+import asyncio
+import streamlit as st
+from frontend.theme import apply_theme
+from streamlit_helpers import safe_container, theme_toggle, inject_global_styles
+from status_indicator import render_status_icon
+from utils import api
+
+# ─── Apply global styles ────────────────────────────────────────────────────────
+apply_theme("light")
+inject_global_styles()
+
+# ─── Dummy data ────────────────────────────────────────────────────────────────
+DUMMY_CONVERSATIONS: dict[str, list[dict[str, str]]] = {
+    "alice": [
+        {"user": "alice", "text": "Hey! How’s it going?"},
+        {"user": "You", "text": "All good here – you? 😊"},
+    ],
+    "bob": [
+        {
+            "user": "bob",
+            "text": "Check out this cool image!",
+            "image": "https://placehold.co/300x200?text=Demo+Image",
+        }
+    ],
+}
+
+
+async def _post_message(target: str, text: str) -> None:
+    """Call the backend API asynchronously."""
+    await api.api_call("POST", f"/messages/{target}", {"text": text})
+
+
+def send_message(target: str, text: str) -> None:
+    """Append locally or POST remotely, then flip a little toggle to refresh."""
+    if api.OFFLINE_MODE:
+        st.session_state["conversations"][target].append({"user": "You", "text": text})
+    else:
+        try:
+            asyncio.run(_post_message(target, text))
+        except Exception:
+            st.toast("❌ Failed to send", icon="⚠️")
+    # Toggle this so Streamlit knows to re-run
+    st.session_state["_refresh_chat"] = not st.session_state.get("_refresh_chat", False)
+
+
+# ─── Page Entrypoint ───────────────────────────────────────────────────────────
+def main(container: st.DeltaGenerator | None = None) -> None:
+    if container is None:
+        container = st
+
+    st.session_state.setdefault("conversations", DUMMY_CONVERSATIONS.copy())
+    theme_toggle("Dark Mode", key_suffix="msg_center")
+    st.session_state["active_page"] = "messages_center"
+
+    # ── Header ──────────────────────────────────────────────────────────
+    with safe_container(container):
+        col_title, col_status = st.columns([8, 1])
+        with col_title:
+            st.header("💬 Messages")
+        with col_status:
+            render_status_icon()
+
+        # ── Conversation Selector ───────────────────────────────────────
+        convos = list(st.session_state["conversations"].keys())
+        selected = st.selectbox("Select Conversation", convos)
+
+        # ── Chat Thread ────────────────────────────────────────────────
+        thread = st.session_state["conversations"][selected]
+        with st.container():
+            st.subheader(f"Chat with {selected.capitalize()}")
+            # Render past messages
+            for msg in thread:
+                "assistant" if msg["user"] != "You" else "user"
+                avatar = msg.get(
+                    "avatar", f"https://robohash.org/{msg['user']}.png?size=40x40"
+                )
+                with st.chat_message(msg["user"], avatar=avatar):
+                    if img := msg.get("image"):
+                        st.image(
+                            img,
+                            use_container_width=True,
+                            alt=msg.get("text", "message image"),
+                        )
+
+                    st.write(msg["text"])
+
+            # Input box
+            user_input = st.chat_input("Type your message…")
+            if user_input:
+                send_message(selected, user_input)
+
+        # ── Refresh Button (in case offline) ───────────────────────────
+        if st.button("🔄 Refresh"):
+            st.session_state["_refresh_chat"] = not st.session_state.get(
+                "_refresh_chat", False
+            )
+
+
+def render() -> None:
+    main()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\music.py
+################################################################################
+# pages/music.py
+import streamlit as st
+import numpy as np
+from io import BytesIO
+import wave
+
+def generate_wav(tone_freq=440, duration=5, sample_rate=44100):
+    """Generate a simple sine wave tone as WAV bytes."""
+    t = np.linspace(0, duration, int(sample_rate * duration), False)
+    tone = np.sin(tone_freq * t * 2 * np.pi)
+    audio = tone * (2**15 - 1) / np.max(np.abs(tone))  # 16-bit scale
+    audio = audio.astype(np.int16)
+    buf = BytesIO()
+    with wave.open(buf, 'wb') as wf:
+        wf.setnchannels(1)  # Mono
+        wf.setsampwidth(2)  # 16-bit
+        wf.setframerate(sample_rate)
+        wf.writeframes(audio.tobytes())
+    return buf.getvalue()
+
+def main():
+    st.markdown("### Music")
+    st.write("Placeholder music player – generating a simple tone.")
+    
+    # Generate and play simple tone
+    wav_bytes = generate_wav()
+    st.audio(wav_bytes, format="audio/wav")
+    
+    # Controls (placeholder)
+    tone_freq = st.slider("Tone Frequency (Hz)", min_value=220, max_value=880, value=440)
+    if st.button("Play Custom Tone"):
+        custom_wav = generate_wav(tone_freq=tone_freq)
+        st.audio(custom_wav, format="audio/wav")
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\profile.backup.before_fix.py
+################################################################################
+from __future__ import annotations
+import os, inspect
+from typing import Any, Dict
+import streamlit as st
+
+# --- status icon wrapper: works with 0-arg or 1-arg implementations ---
+try:
+    st.markdown(f"<div style='text-align:right'>{_status_icon('offline')}</div>", unsafe_allow_html=True)
+except Exception:
+    def render_status_icon(*args, **kwargs):
+        return "🔴"
+
+def _status_icon(status="offline"):
+    try:
+        import inspect
+        if len(inspect.signature(render_status_icon).parameters) == 0:
+            out = render_status_icon()
+        else:
+            out = render_status_icon(status=status)
+    except Exception:
+        out = "🔴" if status != "online" else "🟢"
+    # if the real function renders to Streamlit and returns None, show nothing here
+    return out if isinstance(out, str) else ""
+
+
+# Optional import for the fancy card; we fall back to a simple renderer if missing.
+try:
+    from frontend.profile_card import render_profile_card  # unknown signature across revisions
+except Exception:
+    render_profile_card = None  # type: ignore
+
+# Optional tiny status icon (avoid crashing if helper module isn't present)
+try:
+    from status_indicator import render_status_icon
+except Exception:
+    def render_status_icon(status: str = "offline"):
+        return "🟢" if status == "online" else "🔴"
+
+def _render_profile_card_simple(data: Dict[str, Any]) -> None:
+    st.markdown(f"### @{data.get('username','guest')}")
+    if data.get("avatar_url"):
+        st.image(data["avatar_url"], width=96)
+    st.write(data.get("bio",""))
+    cols = st.columns(2)
+    cols[0].metric("Followers", data.get("followers", 0))
+    cols[1].metric("Following", data.get("following", 0))
+
+def _render_profile_card_compat(data: Dict[str, Any]) -> None:
+    # If we don't have the fancy card, use the simple one
+    if render_profile_card is None:
+        return _render_profile_card_simple(data)
+
+    try:
+        sig = inspect.signature(render_profile_card)
+    except Exception:
+        return _render_profile_card_simple(data)
+
+    params = sig.parameters
+
+    # Case A: function takes no params
+    if len(params) == 0:
+        return render_profile_card()  # type: ignore[misc]
+
+    # Build kwargs dynamically to satisfy various historical signatures
+    kwargs: Dict[str, Any] = {}
+    # common variants we’ve seen: (data), (*, username, avatar_url)
+    if "data" in params:
+        # pass positionally if it's positional-only, else as kw
+        if list(params.values())[0].kind is inspect.Parameter.POSITIONAL_ONLY:
+            return render_profile_card(data)  # type: ignore[misc]
+        kwargs["data"] = data
+    if "username" in params:
+        kwargs["username"] = data.get("username", "guest")
+    if "avatar_url" in params:
+        kwargs["avatar_url"] = data.get("avatar_url", "")
+
+    try:
+        return render_profile_card(**kwargs)  # type: ignore[misc]
+    except TypeError:
+        # Fall back if we guessed wrong
+        return _render_profile_card_simple(data)
+
+# Demo data if no backend
+def _demo_profile(username: str) -> Dict[str, Any]:
+    return {
+        "username": username or "guest",
+        "avatar_url": "",
+        "bio": "Explorer of superNova_2177.",
+        "followers": 2315,
+        "following": 1523,
+        "status": "offline",
+    }
+
+def _get_profile_from_backend(username: str) -> Dict[str, Any]:
+    import json, urllib.request
+    backend = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+    url = f"{backend}/profile/{username}"
+    with urllib.request.urlopen(url) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+def main():
+    st.title("superNova_2177")
+    st.toggle("Dark Mode", value=True, key="darkmode", help="visual only")
+
+    # Right-side status
+    st.markdown(f"<div style='text-align:right'>{_status_icon('offline')}</div>", unsafe_allow_html=True)
+Offline</div>",
+        unsafe_allow_html=True,
+    )
+
+    username = st.text_input("Username", value="guest")
+    use_backend = os.getenv("USE_REAL_BACKEND") == "1"
+
+    try:
+        data = _get_profile_from_backend(username) if use_backend else _demo_profile(username)
+    except Exception as exc:
+        st.warning(f"Backend unavailable, using demo data. ({exc})")
+        data = _demo_profile(username)
+
+    _render_profile_card_compat(data)
+
+# Streamlit expects this
+def render() -> None:
+    main()
+
+################################################################################
+# FILE: pages\profile.backup.before_string_fix.py
+################################################################################
+from __future__ import annotations
+import os, inspect
+from typing import Any, Dict
+import streamlit as st
+
+# --- status icon wrapper: works with 0-arg or 1-arg implementations ---
+try:
+    from status_indicator import render_status_icon  # may take 0 or 1 arg
+except Exception:
+    def render_status_icon(*args, **kwargs):
+        return "🔴"
+
+def _status_icon(status="offline"):
+    try:
+        import inspect
+        if len(inspect.signature(render_status_icon).parameters) == 0:
+            out = render_status_icon()
+        else:
+            out = render_status_icon(status=status)
+    except Exception:
+        out = "🔴" if status != "online" else "🟢"
+    # if the real function renders to Streamlit and returns None, show nothing here
+    return out if isinstance(out, str) else ""
+
+
+# Optional import for the fancy card; we fall back to a simple renderer if missing.
+try:
+    from frontend.profile_card import render_profile_card  # unknown signature across revisions
+except Exception:
+    render_profile_card = None  # type: ignore
+
+# Optional tiny status icon (avoid crashing if helper module isn't present)
+try:
+    from status_indicator import render_status_icon
+except Exception:
+    def render_status_icon(status: str = "offline"):
+        return "🟢" if status == "online" else "🔴"
+
+def _render_profile_card_simple(data: Dict[str, Any]) -> None:
+    st.markdown(f"### @{data.get('username','guest')}")
+    if data.get("avatar_url"):
+        st.image(data["avatar_url"], width=96)
+    st.write(data.get("bio",""))
+    cols = st.columns(2)
+    cols[0].metric("Followers", data.get("followers", 0))
+    cols[1].metric("Following", data.get("following", 0))
+
+def _render_profile_card_compat(data: Dict[str, Any]) -> None:
+    # If we don't have the fancy card, use the simple one
+    if render_profile_card is None:
+        return _render_profile_card_simple(data)
+
+    try:
+        sig = inspect.signature(render_profile_card)
+    except Exception:
+        return _render_profile_card_simple(data)
+
+    params = sig.parameters
+
+    # Case A: function takes no params
+    if len(params) == 0:
+        return render_profile_card()  # type: ignore[misc]
+
+    # Build kwargs dynamically to satisfy various historical signatures
+    kwargs: Dict[str, Any] = {}
+    # common variants we’ve seen: (data), (*, username, avatar_url)
+    if "data" in params:
+        # pass positionally if it's positional-only, else as kw
+        if list(params.values())[0].kind is inspect.Parameter.POSITIONAL_ONLY:
+            return render_profile_card(data)  # type: ignore[misc]
+        kwargs["data"] = data
+    if "username" in params:
+        kwargs["username"] = data.get("username", "guest")
+    if "avatar_url" in params:
+        kwargs["avatar_url"] = data.get("avatar_url", "")
+
+    try:
+        return render_profile_card(**kwargs)  # type: ignore[misc]
+    except TypeError:
+        # Fall back if we guessed wrong
+        return _render_profile_card_simple(data)
+
+# Demo data if no backend
+def _demo_profile(username: str) -> Dict[str, Any]:
+    return {
+        "username": username or "guest",
+        "avatar_url": "",
+        "bio": "Explorer of superNova_2177.",
+        "followers": 2315,
+        "following": 1523,
+        "status": "offline",
+    }
+
+def _get_profile_from_backend(username: str) -> Dict[str, Any]:
+    import json, urllib.request
+    backend = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+    url = f"{backend}/profile/{username}"
+    with urllib.request.urlopen(url) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+def main():
+    st.title("superNova_2177")
+    st.toggle("Dark Mode", value=True, key="darkmode", help="visual only")
+
+    # Right-side status
+    st.markdown(f"<div style='text-align:right'>{_status_icon('offline')}</div>", unsafe_allow_html=True)
+Offline</div>",
+        unsafe_allow_html=True,
+    )
+
+    username = st.text_input("Username", value="guest")
+    use_backend = os.getenv("USE_REAL_BACKEND") == "1"
+
+    try:
+        data = _get_profile_from_backend(username) if use_backend else _demo_profile(username)
+    except Exception as exc:
+        st.warning(f"Backend unavailable, using demo data. ({exc})")
+        data = _demo_profile(username)
+
+    _render_profile_card_compat(data)
+
+# Streamlit expects this
+def render() -> None:
+    main()
+
+################################################################################
+# FILE: pages\profile.backup.py
+################################################################################
+from __future__ import annotations
+import os, inspect
+from typing import Any, Dict
+import streamlit as st
+
+# --- status icon wrapper: works with 0-arg or 1-arg implementations ---
+try:
+    st.markdown(f"<div style='text-align:right'>{_status_icon('offline')}</div>", unsafe_allow_html=True)
+except Exception:
+    def render_status_icon(*args, **kwargs):
+        return "🔴"
+
+def _status_icon(status="offline"):
+    try:
+        import inspect
+        if len(inspect.signature(render_status_icon).parameters) == 0:
+            out = render_status_icon()
+        else:
+            out = render_status_icon(status=status)
+    except Exception:
+        out = "🔴" if status != "online" else "🟢"
+    # if the real function renders to Streamlit and returns None, show nothing here
+    return out if isinstance(out, str) else ""
+
+
+# Optional import for the fancy card; we fall back to a simple renderer if missing.
+try:
+    from frontend.profile_card import render_profile_card  # unknown signature across revisions
+except Exception:
+    render_profile_card = None  # type: ignore
+
+# Optional tiny status icon (avoid crashing if helper module isn't present)
+try:
+    from status_indicator import render_status_icon
+except Exception:
+    def render_status_icon(status: str = "offline"):
+        return "🟢" if status == "online" else "🔴"
+
+def _render_profile_card_simple(data: Dict[str, Any]) -> None:
+    st.markdown(f"### @{data.get('username','guest')}")
+    if data.get("avatar_url"):
+        st.image(data["avatar_url"], width=96)
+    st.write(data.get("bio",""))
+    cols = st.columns(2)
+    cols[0].metric("Followers", data.get("followers", 0))
+    cols[1].metric("Following", data.get("following", 0))
+
+def _render_profile_card_compat(data: Dict[str, Any]) -> None:
+    # If we don't have the fancy card, use the simple one
+    if render_profile_card is None:
+        return _render_profile_card_simple(data)
+
+    try:
+        sig = inspect.signature(render_profile_card)
+    except Exception:
+        return _render_profile_card_simple(data)
+
+    params = sig.parameters
+
+    # Case A: function takes no params
+    if len(params) == 0:
+        return render_profile_card()  # type: ignore[misc]
+
+    # Build kwargs dynamically to satisfy various historical signatures
+    kwargs: Dict[str, Any] = {}
+    # common variants we’ve seen: (data), (*, username, avatar_url)
+    if "data" in params:
+        # pass positionally if it's positional-only, else as kw
+        if list(params.values())[0].kind is inspect.Parameter.POSITIONAL_ONLY:
+            return render_profile_card(data)  # type: ignore[misc]
+        kwargs["data"] = data
+    if "username" in params:
+        kwargs["username"] = data.get("username", "guest")
+    if "avatar_url" in params:
+        kwargs["avatar_url"] = data.get("avatar_url", "")
+
+    try:
+        return render_profile_card(**kwargs)  # type: ignore[misc]
+    except TypeError:
+        # Fall back if we guessed wrong
+        return _render_profile_card_simple(data)
+
+# Demo data if no backend
+def _demo_profile(username: str) -> Dict[str, Any]:
+    return {
+        "username": username or "guest",
+        "avatar_url": "",
+        "bio": "Explorer of superNova_2177.",
+        "followers": 2315,
+        "following": 1523,
+        "status": "offline",
+    }
+
+def _get_profile_from_backend(username: str) -> Dict[str, Any]:
+    import json, urllib.request
+    backend = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+    url = f"{backend}/profile/{username}"
+    with urllib.request.urlopen(url) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+def main():
+    st.title("superNova_2177")
+    st.toggle("Dark Mode", value=True, key="darkmode", help="visual only")
+
+    # Right-side status
+    st.markdown(f"<div style='text-align:right'>{_status_icon('offline')}</div>", unsafe_allow_html=True)
+Offline</div>",
+        unsafe_allow_html=True,
+    )
+
+    username = st.text_input("Username", value="guest")
+    use_backend = os.getenv("USE_REAL_BACKEND") == "1"
+
+    try:
+        data = _get_profile_from_backend(username) if use_backend else _demo_profile(username)
+    except Exception as exc:
+        st.warning(f"Backend unavailable, using demo data. ({exc})")
+        data = _demo_profile(username)
+
+    _render_profile_card_compat(data)
+
+# Streamlit expects this
+def render() -> None:
+    main()
+
+################################################################################
+# FILE: pages\profile.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Profile page — clean, no fragile f-strings, works with fake backend."""
+
+import os
+import streamlit as st
+
+# --- tiny status helper (never throws) ---
+def _status_icon(status="offline") -> str:
+    return "🟢" if status == "online" else "🔴"
+
+# --- try fake backend (Option C); otherwise just demo data ---
+try:
+    from external_services.fake_api import get_profile, save_profile
+except Exception:
+    def get_profile(username: str):
+        return {"username": username, "avatar_url": "", "bio": "", "location": "", "website": ""}
+    def save_profile(data: dict):  # noqa: ARG001
+        return True
+
+DEFAULT_USER = {
+    "username": "guest",
+    "avatar_url": "",
+    "bio": "Explorer of superNova_2177.",
+    "location": "Earth",
+    "website": "https://example.com",
+    "followers": 2315,
+    "following": 1523,
+}
+
+def _render_profile_card_ui(profile: dict) -> None:
+    st.markdown(f"### @{profile.get('username','guest')}")
+    c1, c2 = st.columns([1, 3])
+    with c1:
+        url = profile.get("avatar_url") or ""
+        if url: st.image(url, width=96)
+        else:   st.write("🧑‍🚀")
+    with c2:
+        if profile.get("bio"):      st.write(profile["bio"])
+        if profile.get("location"): st.write(f"📍 {profile['location']}")
+        if profile.get("website"):  st.write(f"🔗 {profile['website']}")
+    m1, m2 = st.columns(2)
+    m1.metric("Followers", profile.get("followers", 0))
+    m2.metric("Following", profile.get("following", 0))
+
+def main() -> None:
+    # Page heading (let ui.py own the big title)
+    st.subheader("Profile")
+
+    # Right-aligned status — build string pieces to avoid quote bugs
+    status_html = "<div style=\"text-align:right\">" + _status_icon("offline") + " Offline</div>"
+    st.markdown(status_html, unsafe_allow_html=True)
+
+    # Username first (so it's defined before any calls)
+    username = st.text_input("Username", st.session_state.get("profile_username", "guest"))
+    st.session_state["profile_username"] = username
+
+    # Load + merge defaults
+    loaded = get_profile(username) or {}
+    profile = {**DEFAULT_USER, **loaded, "username": username}
+
+    # Edit block
+    with st.expander("Edit", expanded=False):
+        profile["avatar_url"] = st.text_input("Avatar URL", profile.get("avatar_url", ""))
+        profile["bio"]        = st.text_area("Bio", profile.get("bio", ""))
+        profile["location"]   = st.text_input("Location", profile.get("location", ""))
+        profile["website"]    = st.text_input("Website", profile.get("website", ""))
+        if st.button("Save Profile"):
+            st.success("Saved.") if save_profile(profile) else st.error("Save failed.")
+
+    # Render card
+    _render_profile_card_ui(profile)
+
+def render() -> None:
+    main()
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\proposals.py
+################################################################################
+import os, json, urllib.request
+import streamlit as st
+from typing import Dict, Any
+
+def _use_backend() -> bool:
+    return os.getenv("USE_REAL_BACKEND", "0").lower() in {"1","true","yes"}
+
+def _burl() -> str:
+    return os.getenv("BACKEND_URL","http://127.0.0.1:8000")
+
+def _get(path: str):
+    with urllib.request.urlopen(_burl()+path) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+def _post(path: str, payload: Dict[str, Any]):
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(_burl()+path, data=data, headers={"Content-Type":"application/json"})
+    with urllib.request.urlopen(req) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+# local fallback
+try:
+    from external_services.fake_api import list_proposals, create_proposal, vote, tally_proposal
+except Exception:
+    def list_proposals(): return []
+    def create_proposal(author,title,body): return {}
+    def vote(pid,voter,choice): return {"ok":False}
+    def tally_proposal(pid): return {"up":0,"down":0}
+
+def main():
+    st.subheader("Proposals")
+    with st.form("new_proposal"):
+        title = st.text_input("Title")
+        body  = st.text_area("Description", height=120)
+        submitted = st.form_submit_button("Create")
+    if submitted and title.strip():
+        if _use_backend():
+            _post("/proposals", {"title":title, "body":body, "author":"guest"})
+        else:
+            create_proposal("guest", title, body)
+        st.success("Created"); st.rerun()
+
+    # list
+    items = _get("/proposals") if _use_backend() else list_proposals()
+    for p in items:
+        with st.container():
+            st.markdown(f"### {p['title']}")
+            st.write(p.get("body",""))
+            pid = p["id"]
+            col1, col2, col3 = st.columns(3)
+            if col1.button(f"👍 Upvote #{pid}", key=f"u_{pid}"):
+                (_post("/votes", {"proposal_id":pid,"voter":"guest","choice":"up"})
+                 if _use_backend() else vote(pid, "guest", "up"))
+                st.rerun()
+            if col2.button(f"👎 Downvote #{pid}", key=f"d_{pid}"):
+                (_post("/votes", {"proposal_id":pid,"voter":"guest","choice":"down"})
+                 if _use_backend() else vote(pid, "guest", "down"))
+                st.rerun()
+            tally = (_get(f"/proposals/{pid}/tally") if _use_backend() else tally_proposal(pid))
+            col3.metric("Votes", f"{tally.get('up',0)} 👍 / {tally.get('down',0)} 👎")
+
+def render(): main()
+
+################################################################################
+# FILE: pages\resonance_music.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Resonance music player and summary viewer."""
+
+from __future__ import annotations
+
+import asyncio
+import base64
+import os
+from typing import Optional
+from pathlib import Path
+
+import requests
+import streamlit as st
+from frontend.theme import apply_theme
+
+from streamlit_helpers import (
+    alert,
+    centered_container,
+    safe_container,
+    header,
+    theme_toggle,
+    inject_global_styles,
+)
+from streamlit_autorefresh import st_autorefresh
+from status_indicator import (
+    render_status_icon,
+    check_backend,
+)
+from utils.api import (
+    get_resonance_summary,
+    dispatch_route,
+)
+
+# Initialize theme & global styles once
+apply_theme("light")
+inject_global_styles()
+
+# BACKEND_URL is defined in utils.api, but we keep it here for direct requests calls if needed
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+AMBIENT_URL = os.getenv(
+    "AMBIENT_MP3_URL",
+    "https://raw.githubusercontent.com/anars/blank-audio/master/10-minutes-of-silence.mp3",
+)
+DEFAULT_AMBIENT_URL = (
+    "https://raw.githubusercontent.com/anars/blank-audio/master/10-seconds-of-silence.mp3"
+)
+
+
+def _load_ambient_audio() -> Optional[bytes]:
+    """Return ambient MP3 bytes from local file or remote URL."""
+    local = Path("ambient_loop.mp3")
+    if local.exists():
+        try:
+            return local.read_bytes()
+        except Exception:
+            pass
+    try:
+        resp = requests.get(DEFAULT_AMBIENT_URL, timeout=5)
+        if resp.ok:
+            return resp.content
+    except Exception:
+        pass
+    return None
+
+
+def _run_async(coro):
+    """Execute ``coro`` regardless of event loop state."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    else:
+        if loop.is_running():
+            return asyncio.run_coroutine_threadsafe(coro, loop).result()
+        return loop.run_until_complete(coro)
+
+
+def main(main_container=None, status_container=None) -> None:
+    """Render music generation and summary widgets."""
+    if main_container is None:
+        main_container = st
+    if status_container is None:
+        status_container = st
+    theme_toggle("Dark Mode", key_suffix="music")
+
+    # Auto-refresh for backend health check (global, outside main_container)
+    st_autorefresh(interval=30000, key="status_ping")
+
+    # Render global backend status indicator in the provided container
+    status_ctx = safe_container(status_container)
+    with status_ctx:
+        render_status_icon(endpoint="/healthz")
+
+    # Display alert if backend is not reachable (check once per rerun)
+    backend_ok = check_backend(endpoint="/healthz")
+    if not backend_ok:
+        alert(
+            f"Backend service unreachable. Please ensure it is running at {BACKEND_URL}.",
+            "error",
+        )
+
+    render_resonance_music_page(main_container=main_container, backend_ok=backend_ok)
+
+
+def render_resonance_music_page(
+    main_container=None, backend_ok: Optional[bool] = None
+) -> None:
+    """
+    Render the Resonance Music page with backend MIDI generation and metrics summary.
+    Handles dynamic selection of profile/track and safely wraps container logic.
+    """
+    container_ctx = safe_container(main_container)
+
+    with container_ctx:
+        header("Resonance Music")
+        centered_container()
+
+        if backend_ok is None:
+            backend_ok = check_backend(endpoint="/healthz")
+
+        st.session_state.setdefault("ambient_enabled", True)
+        play_music = st.toggle(
+            "🎵 Ambient Loop",
+            value=st.session_state["ambient_enabled"],
+            key="ambient_loop_toggle",
+        )
+        st.session_state["ambient_enabled"] = play_music
+        if play_music:
+            audio_bytes = _load_ambient_audio()
+            if audio_bytes:
+                encoded = base64.b64encode(audio_bytes).decode()
+                st.markdown(
+                    f"<audio id='ambient-audio' autoplay loop style='display:none'>"
+                    f"<source src='data:audio/mp3;base64,{encoded}' type='audio/mp3'></audio>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.error("Failed to load ambient music. Please try again later.")
+        else:
+            st.markdown(
+                "<script>var a=document.getElementById('ambient-audio');if(a){a.pause();a.remove();}</script>",
+                unsafe_allow_html=True,
+            )
+
+        profile_options = ["default", "high_harmony", "high_entropy"]
+        track_options = ["Solar Echoes", "Quantum Drift", "Ether Pulse"]
+        combined_options = list(set(profile_options + track_options))
+
+        choice = st.selectbox(
+            "Select a track or resonance profile",
+            combined_options,
+            index=0,
+            placeholder="tracks or resonance profiles",
+            key="resonance_profile_select",
+        )
+
+        midi_placeholder = st.empty()
+
+        # --- Generate Music Section ---
+        if st.button("Generate music", key="generate_music_btn"):
+            if not backend_ok:
+                alert(
+                    f"Cannot generate music: Backend service unreachable at {BACKEND_URL}.",
+                    "error",
+                )
+                return
+
+            with st.spinner("Generating..."):
+                try:
+                    result = _run_async(
+                        dispatch_route("generate_midi", {"profile": choice})
+                    )
+                    midi_b64 = (
+                        result.get("midi_base64") if isinstance(result, dict) else None
+                    )
+
+                    if midi_b64:
+                        midi_bytes = base64.b64decode(midi_b64)
+                        midi_placeholder.audio(midi_bytes, format="audio/midi")
+                        st.toast("Music generated!")
+                    else:
+                        alert("No MIDI data returned from generation.", "warning")
+                except Exception as exc:
+                    alert(
+                        "Music generation failed: "
+                        f"{exc}. Ensure backend is running and 'generate_midi' route is available.",
+                        "error",
+                    )
+
+        # --- Fetch Resonance Summary Section ---
+        if st.button("Fetch resonance summary", key="fetch_summary_btn"):
+            if not backend_ok:
+                alert(
+                    f"Cannot fetch summary: Backend service unreachable at {BACKEND_URL}.",
+                    "error",
+                )
+                return
+
+            with st.spinner("Fetching summary..."):
+                try:
+                    data = _run_async(get_resonance_summary(choice))
+                except Exception as exc:
+                    alert(
+                        "Failed to load summary: "
+                        f"{exc}. Ensure backend is running and 'resonance-summary' route is available.",
+                        "error",
+                    )
+                else:
+                    if data:
+                        metrics = data.get("metrics", {})
+                        midi_bytes_count = data.get("midi_bytes", 0)
+
+                        header("Metrics")
+                        if metrics:
+                            st.table(
+                                {
+                                    "metric": list(metrics.keys()),
+                                    "value": list(metrics.values()),
+                                }
+                            )
+                        else:
+                            st.toast("No metrics available for this profile.")
+
+                        st.write(
+                            f"Associated MIDI bytes (count/size): {midi_bytes_count}"
+                        )
+
+                        summary_midi_b64 = data.get("midi_base64")
+                        if summary_midi_b64:
+                            summary_midi_bytes = base64.b64decode(summary_midi_b64)
+                            st.audio(
+                                summary_midi_bytes,
+                                format="audio/midi",
+                                key="summary_audio_player",
+                            )
+                            st.toast("Playing associated MIDI from summary.")
+
+                        st.toast("Summary loaded!")
+                    else:
+                        alert("No summary data returned for this profile.", "warning")
+
+
+def render() -> None:
+    """Wrapper to keep page loading consistent."""
+    main()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\settings.py
+################################################################################
+"""Settings page with editable profile fields."""
+
+from __future__ import annotations
+
+import streamlit as st
+
+from profile_adapter import update_profile_adapter
+
+
+def main() -> None:
+    """Render the settings UI allowing profile edits."""
+    st.markdown("### Settings")
+    st.write(
+        "Customize your experience here. (Placeholder – more options coming soon!)"
+    )
+
+    # Backend toggle stored in session state for adapter access
+    st.toggle("Enable backend", key="use_backend")
+
+    with st.form("profile_form"):
+        bio = st.text_area("Bio", max_chars=280)
+        prefs_raw = st.text_input("Cultural Preferences (comma-separated)")
+        submitted = st.form_submit_button("Save Profile")
+
+    if submitted:
+        prefs = [p.strip() for p in prefs_raw.split(",") if p.strip()]
+        result = update_profile_adapter(bio, prefs)
+        status = result.get("status")
+        if status == "ok":
+            st.success("Profile updated successfully")
+        elif status == "stubbed":
+            st.info("Profile updated (stub)")
+        else:
+            st.error(f"Update failed: {result.get('error', 'unknown error')}")
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\social.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Friends & Followers page."""
+
+import streamlit as st
+from frontend.theme import apply_theme
+
+from social_tabs import render_social_tab
+from streamlit_helpers import (
+    safe_container,
+    render_mock_feed,
+    theme_toggle,
+    inject_global_styles,
+)
+from feed_renderer import render_feed
+
+# Initialize theme & global styles once
+apply_theme("light")
+inject_global_styles()
+
+
+def main(main_container=None) -> None:
+    """Render the social page content within ``main_container``."""
+    if main_container is None:
+        main_container = st
+    theme_toggle("Dark Mode", key_suffix="social")
+
+    container_ctx = safe_container(main_container)
+    with container_ctx:
+        render_social_tab()
+        st.divider()
+        render_mock_feed()
+        render_feed()
+
+
+def render() -> None:
+    """Wrapper to keep page loading consistent."""
+    main()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\system_status.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""System status metrics page."""
+
+from __future__ import annotations
+
+import streamlit as st
+
+from system_status_adapter import get_status
+
+
+def main() -> None:
+    """Render system status metrics using Streamlit widgets."""
+    use_backend = st.toggle("Enable backend", value=True, key="sys_status_toggle")
+    data = get_status() if use_backend else None
+    if not data or "metrics" not in data:
+        st.info("Backend disabled or unavailable.")
+        st.metric("Harmonizers", "N/A")
+        st.metric("VibeNodes", "N/A")
+        st.metric("Entropy", "N/A")
+    else:
+        metrics = data["metrics"]
+        st.metric("Harmonizers", metrics.get("total_harmonizers", 0))
+        st.metric("VibeNodes", metrics.get("total_vibenodes", 0))
+        st.metric("Entropy", metrics.get("current_system_entropy", 0))
+
+
+def render() -> None:
+    main()
+
+
+async def status_page() -> None:
+    """NiceGUI-compatible async wrapper."""
+    main()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\test_tech.py
+################################################################################
+# pages/accessai.py
+import streamlit as st
+
+def main():
+    st.markdown("### test_tech")
+    # Embed the website in an iframe (responsive, full window)
+    st.components.v1.html("""
+        <iframe src="https://www.accessaitech.com/" style="width:100%; height:100vh; border:none;"></iframe>
+    """, height=800)  # Adjusted height for better desktop/mobile fit
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\validation.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Validation analysis page."""
+
+import importlib
+import streamlit as st
+from frontend.theme import apply_theme
+from streamlit_helpers import safe_container, theme_toggle, inject_global_styles
+
+# Resolve and inject theme/styles once at import time
+apply_theme("light")
+inject_global_styles()
+
+
+# --------------------------------------------------------------------
+# Dynamic loader with graceful degradation
+# --------------------------------------------------------------------
+def _fallback_validation_ui(*_a, **_k):
+    st.warning("Validation UI unavailable")
+
+
+def _load_render_ui():
+    """Try to import ui.render_validation_ui, else return a stub."""
+    try:
+        mod = importlib.import_module("ui")
+        return getattr(mod, "render_validation_ui", _fallback_validation_ui)
+    except Exception:  # pragma: no cover
+        return _fallback_validation_ui
+
+
+render_validation_ui = _load_render_ui()
+
+
+# --------------------------------------------------------------------
+# Page decorator (works even if Streamlit’s multipage API absent)
+# --------------------------------------------------------------------
+def _page_decorator(func):
+    if hasattr(st, "experimental_page"):
+        return st.experimental_page("Validation")(func)
+    return func
+
+
+# --------------------------------------------------------------------
+# Main entry point
+# --------------------------------------------------------------------
+@_page_decorator
+def main(main_container=None) -> None:
+    """Render the validation UI inside a safe container."""
+    if main_container is None:
+        main_container = st
+    theme_toggle("Dark Mode", key_suffix="validation")
+
+    global render_validation_ui
+    # Reload if we initially fell back but the real module may now exist
+    if render_validation_ui is _fallback_validation_ui:
+        render_validation_ui = _load_render_ui()
+
+    container_ctx = safe_container(main_container)
+
+    try:
+        with container_ctx:
+            render_validation_ui(main_container=main_container)
+    except AttributeError:
+        # If safe_container gave an unexpected object, fall back
+        render_validation_ui(main_container=main_container)
+
+
+def render() -> None:
+    """Alias used by other modules/pages."""
+    main()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\video_chat.py
+################################################################################
+"""Minimal Streamlit UI for experimental video chat."""
+
+from __future__ import annotations
+
+import asyncio
+import streamlit as st
+
+from frontend.theme import apply_theme
+from ai_video_chat import create_session
+from video_chat_router import ConnectionManager
+from streamlit_helpers import safe_container, header, theme_toggle, inject_global_styles
+
+# Initialize theme & global styles once on import
+apply_theme("light")
+inject_global_styles()
+
+
+def _run_async(coro):
+    """Run ``coro`` regardless of event loop state."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    else:
+        if loop.is_running():
+            return asyncio.run_coroutine_threadsafe(coro, loop).result()
+        return loop.run_until_complete(coro)
+
+
+manager = ConnectionManager()
+
+
+def main(main_container=None) -> None:
+    """Render the simple video chat demo."""
+    container = main_container if main_container is not None else st
+    theme_toggle("Dark Mode", key_suffix="video_chat")
+
+    container_ctx = safe_container(container)
+    with container_ctx:
+        header("🎥 Video Chat")
+
+        session = st.session_state.get("video_chat_session")
+        messages = st.session_state.setdefault("video_chat_messages", [])
+
+        if session is None:
+            if st.button("Start Session", key="video_chat_start"):
+                session = create_session(["local-user"])
+                _run_async(session.start())
+                st.session_state["video_chat_session"] = session
+                st.success("Session started")
+        else:
+            st.write(f"Session ID: {session.session_id}")
+            if st.button("End Session", key="video_chat_end"):
+                _run_async(session.end())
+                st.session_state["video_chat_session"] = None
+                st.session_state["video_chat_messages"] = []
+                st.success("Session ended")
+                return
+
+            msg = st.text_input("Message", key="video_chat_input")
+            if st.button("Send", key="video_chat_send"):
+                if msg:
+                    payload = {"type": "chat", "text": msg, "lang": "en"}
+                    _run_async(manager.broadcast(payload, sender=None))
+                    messages.append(f"You: {msg}")
+                    st.session_state["video_chat_input"] = ""
+
+            st.markdown("**Chat Log**")
+            for line in messages:
+                st.write(line)
+
+
+def render() -> None:
+    """Wrapper for Streamlit multipage support."""
+    main()
+
+
+if __name__ == "__main__":
+    main()
+
+################################################################################
+# FILE: pages\voting.py
+################################################################################
+# STRICTLY A SOCIAL MEDIA PLATFORM
+# Intellectual Property & Artistic Inspiration
+# Legal & Ethical Safeguards
+"""Governance and voting page."""
+
+import streamlit as st
+from frontend.theme import apply_theme
+from voting_ui import render_voting_tab
+from streamlit_helpers import safe_container, theme_toggle, inject_global_styles
+
+# Initialize theme & global styles once
+apply_theme("light")
+inject_global_styles()
+
+
+def main(main_container=None) -> None:
+    """Render the Governance and Voting page inside ``main_container``."""
+    if main_container is None:
+        main_container = st
+
+    theme_toggle("Dark Mode", key_suffix="voting")
+
+    container_ctx = safe_container(main_container)
+    with container_ctx:
+        render_voting_tab(main_container=main_container)
+
+
+def render() -> None:
+    """Wrapper to keep page loading consistent."""
+    main()
+
+
+if __name__ == "__main__":
+    main()

@@ -424,6 +424,7 @@ def profile(username: str, db: Session = Depends(get_db)):
     }
 
 # --- Create proposal ---
+# --- Create proposal ---
 @app.post("/proposals", response_model=ProposalSchema, summary="Create a new proposal")
 async def create_proposal(
     title: str = Form(...),
@@ -431,7 +432,7 @@ async def create_proposal(
     author: str = Form(...),
     author_type: str = Form("human"),
     author_img: str = Form(""),
-    date: str = Form(""),
+    date: Optional[str] = Form(None),
     video: str = Form(""),
     link: str = Form(""),
     image: Optional[UploadFile] = File(None),
@@ -442,31 +443,29 @@ async def create_proposal(
         raise HTTPException(status_code=400, detail="Invalid author_type")
     
     os.makedirs(uploads_dir, exist_ok=True)
-    image_filename = ""
-    file_filename = ""
-    
-    # Process uploads
+    image_filename = None
+    file_filename = None
+
+    # --- Process uploads ---
     if image:
         ext = os.path.splitext(image.filename)[1]
-        unique_img_name = f"{uuid.uuid4().hex}{ext}"
-        image_path = os.path.join(uploads_dir, unique_img_name)
+        image_filename = f"{uuid.uuid4().hex}{ext}"
+        image_path = os.path.join(uploads_dir, image_filename)
         with open(image_path, "wb") as f:
-            content = await image.read()
-            f.write(content)
-        image_filename = unique_img_name
+            f.write(await image.read())
     
     if file:
         ext = os.path.splitext(file.filename)[1]
-        unique_file_name = f"{uuid.uuid4().hex}{ext}"
-        file_path = os.path.join(uploads_dir, unique_file_name)
+        file_filename = f"{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(uploads_dir, file_filename)
         with open(file_path, "wb") as f:
-            content = await file.read()
-            f.write(content)
-        file_filename = unique_file_name
+            f.write(await file.read())
+    
+    created_at = datetime.now() if not date else datetime.fromisoformat(date)
 
-    # Use SuperNova ORM if available
-    if SUPER_NOVA_AVAILABLE:
-        try:
+    try:
+        if SUPER_NOVA_AVAILABLE:
+            # ORM SuperNova
             db_proposal = Proposal(
                 title=title,
                 description=body,
@@ -477,79 +476,68 @@ async def create_proposal(
                 video=video,
                 link=link,
                 file=file_filename,
-                created_at=datetime.now()
+                created_at=created_at
             )
             db.add(db_proposal)
             db.commit()
             db.refresh(db_proposal)
-            
-            return ProposalSchema(
-                id=db_proposal.id,
-                title=db_proposal.title,
-                text=db_proposal.description,
-                userName=db_proposal.author_username,
-                userInitials=(db_proposal.author_username[:2]).upper() if db_proposal.author_username else "",
-                author_img=db_proposal.author_img,
-                time=db_proposal.created_at.isoformat(),
-                author_type=db_proposal.author_type,
-                likes=[],
-                dislikes=[],
-                comments=[],
-                media={
-                    "image": f"/uploads/{db_proposal.image}" if db_proposal.image else "",
-                    "video": db_proposal.video,
-                    "link": db_proposal.link,
-                    "file": f"/uploads/{db_proposal.file}" if db_proposal.file else ""
-                }
-            )
-        except Exception as e:
-            db.rollback()
-            raise HTTPException(status_code=500, detail=f"Failed to create proposal: {str(e)}")
-    else:
-        # Fallback para SQL direto
-        try:
+
+            user_name = db_proposal.author_username
+        else:
+            # Fallback SQL direto
             result = db.execute(
                 text("""
-                    INSERT INTO proposals (title, body, author, author_type, author_img, date, image, video, link, file) 
+                    INSERT INTO proposals (title, body, author, author_type, author_img, date, image, video, link, file)
                     VALUES (:title, :body, :author, :author_type, :author_img, :date, :image, :video, :link, :file)
                     RETURNING id
                 """),
                 {
                     "title": title, "body": body, "author": author, "author_type": author_type,
-                    "author_img": author_img, "date": date or datetime.now().isoformat(),
+                    "author_img": author_img, "date": created_at.isoformat(),
                     "image": image_filename, "video": video, "link": link, "file": file_filename
                 }
             )
             db.commit()
             row = result.fetchone()
-            proposal_id = row[0] if row else None
-            
-            if not proposal_id:
+            if not row:
                 raise HTTPException(status_code=500, detail="Failed to create proposal")
-            
-            return ProposalSchema(
-                id=proposal_id,
-                title=title,
-                text=body,
-                userName=author,
-                userInitials=(author[:2]).upper() if author else "",
-                author_img=author_img,
-                time=date or datetime.now().isoformat(),
-                author_type=author_type,
-                likes=[],
-                dislikes=[],
-                comments=[],
-                media={
-                    "image": f"/uploads/{image_filename}" if image_filename else "",
-                    "video": video,
-                    "link": link,
-                    "file": f"/uploads/{file_filename}" if file_filename else ""
-                }
-            )
-        except Exception as e:
-            db.rollback()
-            raise HTTPException(status_code=500, detail=f"Failed to create proposal: {str(e)}")
+            db_proposal = type("Temp", (), {})()  # objeto temporário
+            db_proposal.id = row[0]
+            db_proposal.title = title
+            db_proposal.description = body
+            db_proposal.author_username = author
+            db_proposal.author_type = author_type
+            db_proposal.author_img = author_img
+            db_proposal.image = image_filename
+            db_proposal.video = video
+            db_proposal.link = link
+            db_proposal.file = file_filename
+            db_proposal.created_at = created_at
+            user_name = author
 
+        return ProposalSchema(
+            id=db_proposal.id,
+            title=db_proposal.title,
+            text=db_proposal.description,
+            userName=user_name,
+            userInitials=(user_name[:2]).upper() if user_name else "",
+            author_img=db_proposal.author_img or "",
+            time=db_proposal.created_at.isoformat(),
+            author_type=db_proposal.author_type,
+            likes=[],
+            dislikes=[],
+            comments=[],
+            media={
+                "image": f"/uploads/{db_proposal.image}" if db_proposal.image else "",
+                "video": db_proposal.video or "",
+                "link": db_proposal.link or "",
+                "file": f"/uploads/{db_proposal.file}" if db_proposal.file else ""
+            }
+        )
+    
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create proposal: {str(e)}")
 # --- LIST PROPOSALS - CORRIGIDO com search e filtros funcionando ---
 @app.get("/proposals", response_model=List[ProposalSchema])
 def list_proposals(
@@ -559,173 +547,68 @@ def list_proposals(
 ):
     try:
         if SUPER_NOVA_AVAILABLE:
-            # Query base com ORM
             query = db.query(Proposal)
-            
-            # 🔍 SEARCH FUNCTIONALITY - CORRIGIDO
+
+            # SEARCH
             if search and search.strip():
                 search_filter = f"%{search}%"
                 query = query.filter(
                     or_(
                         Proposal.title.ilike(search_filter),
-                        Proposal.description.ilike(search_filter),
-                        Proposal.author_username.ilike(search_filter)
+                        Proposal.description.ilike(search_filter)
                     )
                 )
-            
-            # 🎯 FILTERS - CORRIGIDOS
+
+            # FILTERS
             if filter == "latest":
                 query = query.order_by(desc(Proposal.created_at))
             elif filter == "oldest":
                 query = query.order_by(asc(Proposal.created_at))
-            elif filter == "topLikes":
-                # ✅ TOP LIKED - Agora funciona
-                from sqlalchemy import case
-                likes_count = func.sum(
-                    case((ProposalVote.choice == "up", 1), else_=0)
-                ).label("likes_count")
-                
-                query = query.outerjoin(ProposalVote, Proposal.id == ProposalVote.proposal_id)
-                query = query.group_by(Proposal.id)
-                query = query.order_by(desc(likes_count))
-                
-            elif filter == "fewestLikes":
-                # ✅ FEWEST LIKES - Agora funciona
-                from sqlalchemy import case
-                likes_count = func.sum(
-                    case((ProposalVote.choice == "up", 1), else_=0)
-                ).label("likes_count")
-                
-                query = query.outerjoin(ProposalVote, Proposal.id == ProposalVote.proposal_id)
-                query = query.group_by(Proposal.id)
-                query = query.order_by(asc(likes_count))
-                
-            elif filter == "popular":
-                # ✅ POPULAR (mais votos totais)
-                from sqlalchemy import case
-                total_votes = func.count(ProposalVote.id).label("total_votes")
-                
-                query = query.outerjoin(ProposalVote, Proposal.id == ProposalVote.proposal_id)
-                query = query.group_by(Proposal.id)
-                query = query.order_by(desc(total_votes))
-                
-            elif filter in ["ai", "company", "human"]:
-                query = query.filter(Proposal.author_type == filter)
-            else:  # "all"
+            else:
                 query = query.order_by(desc(Proposal.id))
-            
+
             proposals = query.all()
-            
+
         else:
-            # 🔍 FALLBACK: SQL direto com search
-            base_query = "SELECT * FROM proposals WHERE 1=1"
-            params = {}
-            
-            if search and search.strip():
-                base_query += " AND (title ILIKE :search OR body ILIKE :search OR author ILIKE :search)"
-                params["search"] = f"%{search}%"
-            
-            # 🎯 FALLBACK: Filtros com SQL
-            if filter == "latest":
-                base_query += " ORDER BY date DESC"
-            elif filter == "oldest":
-                base_query += " ORDER BY date ASC"
-            elif filter == "topLikes":
-                base_query = """
-                    SELECT p.*, COUNT(v.id) as like_count 
-                    FROM proposals p 
-                    LEFT JOIN votes v ON p.id = v.proposal_id AND v.choice = 'up' 
-                    GROUP BY p.id 
-                    ORDER BY like_count DESC
-                """
-            elif filter == "fewestLikes":
-                base_query = """
-                    SELECT p.*, COUNT(v.id) as like_count 
-                    FROM proposals p 
-                    LEFT JOIN votes v ON p.id = v.proposal_id AND v.choice = 'up' 
-                    GROUP BY p.id 
-                    ORDER BY like_count ASC
-                """
-            elif filter in ["ai", "company", "human"]:
-                base_query += " AND author_type = :filter ORDER BY id DESC"
-                params["filter"] = filter
-            else:
-                base_query += " ORDER BY id DESC"
-            
-            result = db.execute(text(base_query), params)
-            proposals_data = result.fetchall()
-            
-            # Converter para objetos Proposal se necessário
-            if SUPER_NOVA_AVAILABLE:
-                proposals = [Proposal(**dict(row)) for row in proposals_data]
-            else:
-                proposals = proposals_data
-        
-        # 🏗️ CONSTRUIR RESPOSTA
+            # Fallback SQL direto
+            base_query = "SELECT * FROM proposals ORDER BY id DESC"
+            proposals = db.execute(text(base_query)).fetchall()
+
         proposals_list = []
         for prop in proposals:
+            # Obter nome do autor
             if SUPER_NOVA_AVAILABLE:
-                # Buscar votos e comentários com ORM
-                votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == prop.id).all()
-                comments = db.query(Comment).filter(Comment.proposal_id == prop.id).all()
-                
-                proposal_data = {
-                    "id": prop.id,
-                    "title": prop.title,
-                    "userName": prop.author_username,
-                    "userInitials": (prop.author_username[:2]).upper() if prop.author_username else "",
-                    "text": prop.description,
-                    "author_img": prop.author_img,
-                    "time": prop.created_at.isoformat() if hasattr(prop, 'created_at') and prop.created_at else "",
-                    "author_type": prop.author_type,
-                    "likes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"],
-                    "dislikes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"],
-                    "comments": [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments],
-                    "media": {
-                        "image": f"/uploads/{prop.image}" if prop.image else "",
-                        "video": prop.video,
-                        "link": prop.link,
-                        "file": f"/uploads/{prop.file}" if prop.file else ""
-                    }
-                }
+                author = db.query(Harmonizer).filter(Harmonizer.id == prop.author_id).first()
+                user_name = author.username if author else "Unknown"
             else:
-                # Buscar votos e comentários com SQL direto
-                votes_result = db.execute(
-                    text("SELECT * FROM votes WHERE proposal_id = :pid"),
-                    {"pid": prop.id}
-                )
-                votes = votes_result.fetchall()
-                
-                comments_result = db.execute(
-                    text("SELECT * FROM comments WHERE proposal_id = :pid"),
-                    {"pid": prop.id}
-                )
-                comments = comments_result.fetchall()
-                
-                proposal_data = {
-                    "id": prop.id,
-                    "title": prop.title,
-                    "userName": prop.author,
-                    "userInitials": (prop.author[:2]).upper() if prop.author else "",
-                    "text": prop.body,
-                    "author_img": prop.author_img,
-                    "time": prop.date,
-                    "author_type": prop.author_type,
-                    "likes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"],
-                    "dislikes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"],
-                    "comments": [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments],
-                    "media": {
-                        "image": f"/uploads/{prop.image}" if prop.image else "",
-                        "video": prop.video,
-                        "link": prop.link,
-                        "file": f"/uploads/{prop.file}" if prop.file else ""
-                    }
+                user_name = getattr(prop, "author", "Unknown")
+
+            # Votos e comentários
+            votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == prop.id).all() if SUPER_NOVA_AVAILABLE else []
+            comments = db.query(Comment).filter(Comment.proposal_id == prop.id).all() if SUPER_NOVA_AVAILABLE else []
+
+            proposals_list.append({
+                "id": prop.id,
+                "title": prop.title,
+                "userName": user_name,
+                "userInitials": user_name[:2].upper() if user_name else "",
+                "text": prop.description,
+                "author_img": getattr(prop, "author_img", ""),
+                "time": prop.created_at.isoformat() if getattr(prop, "created_at", None) else "",
+                "author_type": getattr(prop, "author_type", "human"),
+                "likes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.vote == "up"],
+                "dislikes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.vote == "down"],
+                "comments": [{"proposal_id": c.proposal_id, "user": getattr(c, "user", "Anonymous"), "user_img": getattr(c, "user_img", ""), "comment": getattr(c, "comment", "")} for c in comments],
+                "media": {
+                    "image": f"/uploads/{getattr(prop, 'image', '')}" if getattr(prop, "image", None) else "",
+                    "video": getattr(prop, "video", ""),
+                    "link": getattr(prop, "link", ""),
+                    "file": f"/uploads/{getattr(prop, 'file', '')}" if getattr(prop, "file", None) else ""
                 }
-            
-            proposals_list.append(proposal_data)
-        
+            })
+
         return proposals_list
-        
+
     except Exception as e:
         import traceback
         print(f"❌ Error in list_proposals: {str(e)}")
@@ -772,12 +655,12 @@ def add_vote(v: VoteIn, db: Session = Depends(get_db)):
             # SQL direto
             # Remover voto existente se houver
             db.execute(
-                text("DELETE FROM votes WHERE proposal_id = :pid AND voter = :voter"),
+                text("DELETE FROM proposal_votes WHERE proposal_id = :pid AND voter = :voter"),
                 {"pid": v.proposal_id, "voter": v.voter}
             )
             # Inserir novo voto
             db.execute(
-                text("INSERT INTO votes (proposal_id, voter, choice, voter_type) VALUES (:pid, :voter, :choice, :vtype)"),
+                text("INSERT INTO proposal_votes (proposal_id, voter, choice, voter_type) VALUES (:pid, :voter, :choice, :vtype)"),
                 {"pid": v.proposal_id, "voter": v.voter, "choice": v.choice, "vtype": v.voter_type}
             )
         
@@ -789,47 +672,55 @@ def add_vote(v: VoteIn, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to register vote: {str(e)}")
 
 # --- Tally endpoints ---
-@app.get("/proposals/{pid}/tally")
-def tally(pid: int, db: Session = Depends(get_db)):
+@app.get("/proposals/{pid}", response_model=ProposalSchema)
+def get_proposal(pid: int, db: Session = Depends(get_db)):
     try:
-        weighted_result = {}
-        if SUPER_NOVA_AVAILABLE:
-            try:
-                weighted_result = tally_votes(pid)
-            except Exception as e:
-                print(f"⚠️ Weighted tally failed: {e}")
-        
-        # Contagem tradicional
-        if SUPER_NOVA_AVAILABLE:
-            up_count = db.query(ProposalVote).filter(
-                ProposalVote.proposal_id == pid, 
-                ProposalVote.choice == "up"
-            ).count()
-            down_count = db.query(ProposalVote).filter(
-                ProposalVote.proposal_id == pid, 
-                ProposalVote.choice == "down"
-            ).count()
-        else:
-            up_result = db.execute(
-                text("SELECT COUNT(*) FROM votes WHERE proposal_id = :pid AND choice = 'up'"),
-                {"pid": pid}
-            )
-            down_result = db.execute(
-                text("SELECT COUNT(*) FROM votes WHERE proposal_id = :pid AND choice = 'down'"),
-                {"pid": pid}
-            )
-            up_count = up_result.scalar() or 0
-            down_count = down_result.scalar() or 0
-        
-        return {
-            "up": up_count,
-            "down": down_count,
-            "weighted": weighted_result,
-            "system": "unified"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to tally votes: {str(e)}")
+        prop = db.query(Proposal).filter(Proposal.id == pid).first()
+        if not prop:
+            raise HTTPException(status_code=404, detail="Proposal not found")
 
+        # Obter nome do autor
+        author = db.query(Harmonizer).filter(Harmonizer.id == prop.author_id).first()
+        user_name = author.username if author else "Unknown"
+
+        # Votos
+        votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == pid).all()
+        likes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.vote == "up"]
+        dislikes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.vote == "down"]
+
+        # Comentários
+        comments = db.query(Comment).filter(Comment.proposal_id == pid).all()
+        comments_list = [{"proposal_id": c.proposal_id,
+                          "user": getattr(c, "user", "Anonymous"),
+                          "user_img": getattr(c, "user_img", ""),
+                          "comment": getattr(c, "comment", "")} for c in comments]
+
+        return ProposalSchema(
+            id=prop.id,
+            title=prop.title,
+            text=prop.description,
+            userName=user_name,
+            userInitials=user_name[:2].upper() if user_name else "",
+            author_img=getattr(prop, "author_img", ""),
+            time=prop.created_at.isoformat() if prop.created_at else "",
+            author_type=getattr(prop, "author_type", "human"),
+            likes=likes,
+            dislikes=dislikes,
+            comments=comments_list,
+            media={
+                "image": f"/uploads/{getattr(prop, 'image', '')}" if getattr(prop, "image", None) else "",
+                "video": getattr(prop, "video", ""),
+                "link": getattr(prop, "link", ""),
+                "file": f"/uploads/{getattr(prop, 'file', '')}" if getattr(prop, "file", None) else ""
+            }
+        )
+
+    except Exception as e:
+        import traceback
+        print(f"❌ Error in get_proposal: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Failed to get proposal: {str(e)}")
+    
 @app.get("/proposals/{pid}/tally-weighted")
 def tally_weighted(pid: int):
     if not SUPER_NOVA_AVAILABLE:
