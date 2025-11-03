@@ -3,7 +3,7 @@ import os
 import time
 import shutil
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Query, Form, UploadFile, File, Depends, APIRouter
 from pydantic import BaseModel
 from typing import Optional, List, Dict
@@ -195,7 +195,7 @@ def register_vote(proposal_id: int, voter: str, choice: str, species: str = "hum
     finally:
         if 'session' in locals():
             session.close()
-            
+
 # --- FastAPI setup ---
 app = FastAPI(
     title="SuperNova 2177 API",
@@ -264,6 +264,67 @@ class CommentIn(BaseModel):
     user_img: str
     comment: str
 
+def get_or_create_author(db: Session, author_name: str, author_type: str = "human"):
+    """Get existing author or create a temporary one for SuperNova proposals"""
+    try:
+        # Primeiro tenta encontrar um author existente
+        author = db.query(Harmonizer).filter(Harmonizer.username == author_name).first()
+        if author:
+            return author.id
+        
+        # Se não encontrar, cria um temporário (apenas para SuperNova)
+        temp_author = Harmonizer(
+            username=author_name,
+            email=f"{author_name}@temp.supernova",
+            hashed_password="temp",  # Senha temporária
+            species=author_type,
+            is_active=True
+        )
+        db.add(temp_author)
+        db.commit()
+        db.refresh(temp_author)
+        return temp_author.id
+    except Exception as e:
+        print(f"⚠️ Error handling author: {e}")
+        # Fallback para um author padrão
+        default_author = db.query(Harmonizer).filter(Harmonizer.username == "guest").first()
+        if default_author:
+            return default_author.id
+        return 1  # Fallback extremo
+
+
+# --- FUNÇÃO DE NORMALIZAÇÃO DE DADOS ---
+def normalize_proposal_data(
+    title: str,
+    body: Optional[str] = None,
+    description: Optional[str] = None,
+    author: Optional[str] = None,
+    author_username: Optional[str] = None,
+    author_type: Optional[str] = None,
+    author_img: Optional[str] = None,
+    date: Optional[str] = None,
+    image: Optional[str] = None,
+    video: Optional[str] = None,
+    link: Optional[str] = None,
+    file: Optional[str] = None,
+):
+    """Normalize data between app.py and SuperNova formats"""
+    content = description if description is not None else body
+    author_name = author_username if author_username is not None else author
+
+    return {
+        "title": title,
+        "content": content or "",  # Garantir que não seja None
+        "author_name": author_name or "",  # Garantir que não seja None
+        "author_type": author_type or "human",
+        "author_img": author_img or "",
+        "date": date or datetime.now().isoformat(),
+        "image": image,
+        "video": video or "",
+        "link": link or "",
+        "file": file,
+    }
+
 # --- Universe Info Endpoint ---
 @app.get("/universe/info", tags=["System"])
 def universe_info():
@@ -324,7 +385,8 @@ def get_universe_state():
             {"source": "u1", "target": "u2"},
         ]
     }
-   
+
+# --- Debug endpoints ---
 @app.get("/supernova-status", summary="Check SuperNova integration status")
 def supernova_status():
     return {
@@ -338,13 +400,12 @@ def supernova_status():
         }
     }
 
-# --- Debug endpoints para testar search e filtros ---
 @app.get("/debug-supernova")
 def debug_supernova():
     import os
     import sys
     return {
-        "supernova_available": SUPER_NOVA_AVAILABLE,  # Use your global variable
+        "supernova_available": SUPER_NOVA_AVAILABLE,
         "python_path": sys.path,
         "current_dir": os.getcwd(),
         "dir_contents": os.listdir('.'),
@@ -391,6 +452,53 @@ def debug_search(search: str = Query(...), db: Session = Depends(get_db)):
     except Exception as e:
         return {"error": str(e), "query_working": False}
 
+# --- Debug endpoint para testar dados recebidos ---
+@app.post("/debug-proposal")
+async def debug_proposal(
+    title: str = Form(...),
+    body: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    author: Optional[str] = Form(None),
+    author_username: Optional[str] = Form(None),
+    author_type: str = Form("human"),
+    author_img: str = Form(""),
+    date: str = Form(""),
+    video: str = Form(""),
+    link: str = Form(""),
+    image: Optional[UploadFile] = File(None),
+    file: Optional[UploadFile] = File(None),
+):
+    """Endpoint para debug dos dados recebidos"""
+    normalized_data = normalize_proposal_data(
+        title=title,
+        body=body,
+        description=description,
+        author=author,
+        author_username=author_username,
+        author_type=author_type,
+        author_img=author_img,
+        date=date,
+        video=video,
+        link=link,
+    )
+
+    return {
+        "received_data": {
+            "title": title,
+            "body": body,
+            "description": description,
+            "author": author,
+            "author_username": author_username,
+            "author_type": author_type,
+            "author_img": author_img,
+            "date": date,
+            "video": video,
+            "link": link,
+        },
+        "normalized_data": normalized_data,
+        "supernova_available": SUPER_NOVA_AVAILABLE
+    }
+
 # --- Profile endpoint ---
 @app.get("/profile/{username}", summary="Get user profile")
 def profile(username: str, db: Session = Depends(get_db)):
@@ -423,12 +531,14 @@ def profile(username: str, db: Session = Depends(get_db)):
         "status": "online"
     }
 
-# --- Create proposal ---
+# --- Create proposal (COM NORMALIZAÇÃO) ---
 @app.post("/proposals", response_model=ProposalSchema, summary="Create a new proposal")
 async def create_proposal(
     title: str = Form(...),
-    body: str = Form(...),
-    author: str = Form(...),
+    body: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    author: Optional[str] = Form(None),
+    author_username: Optional[str] = Form(None),
     author_type: str = Form("human"),
     author_img: str = Form(""),
     date: str = Form(""),
@@ -438,118 +548,201 @@ async def create_proposal(
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
-    if author_type not in ("human", "company", "ai"):
-        raise HTTPException(status_code=400, detail="Invalid author_type")
-    
-    os.makedirs(uploads_dir, exist_ok=True)
-    image_filename = ""
-    file_filename = ""
-    
-    # Process uploads
-    if image:
-        ext = os.path.splitext(image.filename)[1]
-        unique_img_name = f"{uuid.uuid4().hex}{ext}"
-        image_path = os.path.join(uploads_dir, unique_img_name)
-        with open(image_path, "wb") as f:
-            content = await image.read()
-            f.write(content)
-        image_filename = unique_img_name
-    
-    if file:
-        ext = os.path.splitext(file.filename)[1]
-        unique_file_name = f"{uuid.uuid4().hex}{ext}"
-        file_path = os.path.join(uploads_dir, unique_file_name)
-        with open(file_path, "wb") as f:
-            content = await file.read()
-            f.write(content)
-        file_filename = unique_file_name
+    try:
+        print(f"📥 Received proposal: title={title}, body={body}, description={description}, author={author}, author_username={author_username}")
 
-    # Use SuperNova ORM if available
-    if SUPER_NOVA_AVAILABLE:
-        try:
-            db_proposal = Proposal(
-                title=title,
-                description=body,
-                author_username=author,
-                author_type=author_type,
-                author_img=author_img,
-                image=image_filename,
-                video=video,
-                link=link,
-                file=file_filename,
-                created_at=datetime.now()
-            )
-            db.add(db_proposal)
-            db.commit()
-            db.refresh(db_proposal)
-            
-            return ProposalSchema(
-                id=db_proposal.id,
-                title=db_proposal.title,
-                text=db_proposal.description,
-                userName=db_proposal.author_username,
-                userInitials=(db_proposal.author_username[:2]).upper() if db_proposal.author_username else "",
-                author_img=db_proposal.author_img,
-                time=db_proposal.created_at.isoformat(),
-                author_type=db_proposal.author_type,
-                likes=[],
-                dislikes=[],
-                comments=[],
-                media={
-                    "image": f"/uploads/{db_proposal.image}" if db_proposal.image else "",
-                    "video": db_proposal.video,
-                    "link": db_proposal.link,
-                    "file": f"/uploads/{db_proposal.file}" if db_proposal.file else ""
-                }
-            )
-        except Exception as e:
-            db.rollback()
-            raise HTTPException(status_code=500, detail=f"Failed to create proposal: {str(e)}")
-    else:
-        # Fallback para SQL direto
-        try:
-            result = db.execute(
-                text("""
-                    INSERT INTO proposals (title, body, author, author_type, author_img, date, image, video, link, file) 
-                    VALUES (:title, :body, :author, :author_type, :author_img, :date, :image, :video, :link, :file)
-                    RETURNING id
-                """),
-                {
-                    "title": title, "body": body, "author": author, "author_type": author_type,
-                    "author_img": author_img, "date": date or datetime.now().isoformat(),
-                    "image": image_filename, "video": video, "link": link, "file": file_filename
-                }
-            )
-            db.commit()
-            row = result.fetchone()
-            proposal_id = row[0] if row else None
-            
-            if not proposal_id:
-                raise HTTPException(status_code=500, detail="Failed to create proposal")
-            
-            return ProposalSchema(
-                id=proposal_id,
-                title=title,
-                text=body,
-                userName=author,
-                userInitials=(author[:2]).upper() if author else "",
-                author_img=author_img,
-                time=date or datetime.now().isoformat(),
-                author_type=author_type,
-                likes=[],
-                dislikes=[],
-                comments=[],
-                media={
-                    "image": f"/uploads/{image_filename}" if image_filename else "",
-                    "video": video,
-                    "link": link,
-                    "file": f"/uploads/{file_filename}" if file_filename else ""
-                }
-            )
-        except Exception as e:
-            db.rollback()
-            raise HTTPException(status_code=500, detail=f"Failed to create proposal: {str(e)}")
+        # Normalizar os dados entre os formatos app.py e SuperNova
+        normalized_data = normalize_proposal_data(
+            title=title,
+            body=body,
+            description=description,
+            author=author,
+            author_username=author_username,
+            author_type=author_type,
+            author_img=author_img,
+            date=date,
+            video=video,
+            link=link,
+        )
 
+        print(f"📦 Normalized data: {normalized_data}")
+
+        # Validações
+        if not normalized_data["author_name"]:
+            raise HTTPException(status_code=400, detail="Author is required (use 'author' or 'author_username')")
+
+        if not normalized_data["content"]:
+            raise HTTPException(status_code=400, detail="Content is required (use 'body' or 'description')")
+
+        # Processar uploads
+        os.makedirs(uploads_dir, exist_ok=True)
+        image_filename = ""
+        file_filename = ""
+        author_img_filename = ""
+
+        # --- Processar imagem de perfil do autor ---
+        author_id = get_or_create_author(db, normalized_data["author_name"], normalized_data["author_type"])
+        author_obj = db.query(Harmonizer).filter(Harmonizer.id == author_id).first()
+
+        # Guardar imagem de perfil se enviada
+        if author_img and isinstance(author_img, UploadFile):
+            ext = os.path.splitext(author_img.filename)[1]
+            unique_author_img = f"{uuid.uuid4().hex}{ext}"
+            author_img_path = os.path.join(uploads_dir, unique_author_img)
+            with open(author_img_path, "wb") as f:
+                content = await author_img.read()
+                f.write(content)
+            author_obj.profile_pic = unique_author_img
+            db.commit()
+            db.refresh(author_obj)
+            author_img_filename = unique_author_img
+            print(f"✅ Author profile image saved: {author_img_filename}")
+        elif author_img and isinstance(author_img, str):
+            author_obj.profile_pic = author_img
+            db.commit()
+            db.refresh(author_obj)
+            author_img_filename = author_img
+
+        if image:
+            print(f"🖼️ Processing image upload: {image.filename}")
+            ext = os.path.splitext(image.filename)[1]
+            unique_img_name = f"{uuid.uuid4().hex}{ext}"
+            image_path = os.path.join(uploads_dir, unique_img_name)
+            with open(image_path, "wb") as f:
+                content = await image.read()
+                f.write(content)
+            image_filename = unique_img_name
+            print(f"✅ Image saved: {image_filename}")
+
+        if file:
+            print(f"📄 Processing file upload: {file.filename}")
+            ext = os.path.splitext(file.filename)[1]
+            unique_file_name = f"{uuid.uuid4().hex}{ext}"
+            file_path = os.path.join(uploads_dir, unique_file_name)
+            with open(file_path, "wb") as f:
+                content = await file.read()
+                f.write(content)
+            file_filename = unique_file_name
+            print(f"✅ File saved: {file_filename}")
+
+        if SUPER_NOVA_AVAILABLE:
+            try:
+                print("🚀 Using SuperNova ORM to create proposal")
+                # --- Criar a proposta ---
+                db_proposal = Proposal(
+                    title=normalized_data["title"],
+                    description=normalized_data["content"],
+                    author_id=author_id,
+                    voting_deadline=datetime.now() + timedelta(days=7),
+                    status="open",
+                    created_at=datetime.now(),
+                    payload={
+                        "image": image_filename if image_filename else "",
+                        "video": normalized_data.get("video", ""),
+                        "link": normalized_data.get("link", ""),
+                        "file": file_filename if file_filename else "",
+                    }
+                )
+                db.add(db_proposal)
+                db.commit()
+                db.refresh(db_proposal)
+
+                print(f"✅ Proposal created with ID: {db_proposal.id}")
+
+                # Build author_img_val
+                if author_obj and author_obj.profile_pic:
+                    if author_obj.profile_pic.startswith("http://") or author_obj.profile_pic.startswith("https://"):
+                        author_img_val = author_obj.profile_pic
+                    else:
+                        author_img_val = f"/uploads/{author_obj.profile_pic}"
+                else:
+                    author_img_val = ""
+                # Build media dict from payload
+                media_payload = db_proposal.payload or {}
+                return ProposalSchema(
+                    id=db_proposal.id,
+                    title=db_proposal.title,
+                    text=db_proposal.description,
+                    userName=normalized_data["author_name"],
+                    userInitials=(normalized_data["author_name"][:2]).upper() if normalized_data["author_name"] else "",
+                    author_img=author_img_val,
+                    time=db_proposal.created_at.isoformat(),
+                    author_type=normalized_data["author_type"],
+                    likes=[],
+                    dislikes=[],
+                    comments=[],
+                    media={
+                        "image": f"/uploads/{media_payload.get('image','')}" if media_payload.get("image") else "",
+                        "video": media_payload.get("video", ""),
+                        "link": media_payload.get("link", ""),
+                        "file": f"/uploads/{media_payload.get('file','')}" if media_payload.get("file") else ""
+                    }
+                )
+            except Exception as e:
+                db.rollback()
+                print(f"❌ Error creating proposal in SuperNova: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                raise HTTPException(status_code=500, detail=f"Failed to create proposal in SuperNova: {str(e)}")
+        else:
+            try:
+                result = db.execute(
+                    text("""
+                        INSERT INTO proposals (title, body, author, author_type, author_img, date, image, video, link, file)
+                        VALUES (:title, :body, :author, :author_type, :author_img, :date, :image, :video, :link, :file)
+                        RETURNING id
+                    """),
+                    {
+                        "title": normalized_data["title"],
+                        "body": normalized_data["content"],
+                        "author": normalized_data["author_name"],
+                        "author_type": normalized_data["author_type"],
+                        "author_img": author_img_filename,
+                        "date": normalized_data["date"] or datetime.now().isoformat(),
+                        "image": image_filename,
+                        "video": normalized_data["video"],
+                        "link": normalized_data["link"],
+                        "file": file_filename
+                    }
+                )
+                db.commit()
+                row = result.fetchone()
+                proposal_id = row[0] if row else None
+
+                if not proposal_id:
+                    raise HTTPException(status_code=500, detail="Failed to create proposal")
+
+                return ProposalSchema(
+                    id=proposal_id,
+                    title=normalized_data["title"],
+                    text=normalized_data["content"],
+                    userName=normalized_data["author_name"],
+                    userInitials=(normalized_data["author_name"][:2]).upper() if normalized_data["author_name"] else "",
+                    author_img=f"/uploads/{author_img_filename}" if author_img_filename else "",
+                    time=normalized_data["date"] or datetime.now().isoformat(),
+                    author_type=normalized_data["author_type"],
+                    likes=[],
+                    dislikes=[],
+                    comments=[],
+                    media={
+                        "image": f"/uploads/{image_filename}" if image_filename else "",
+                        "video": normalized_data["video"],
+                        "link": normalized_data["link"],
+                        "file": f"/uploads/{file_filename}" if file_filename else ""
+                    }
+                )
+            except Exception as e:
+                db.rollback()
+                raise HTTPException(status_code=500, detail=f"Failed to create proposal: {str(e)}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Unexpected error in create_proposal: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    
 # --- LIST PROPOSALS - CORRIGIDO com search e filtros funcionando ---
 @app.get("/proposals", response_model=List[ProposalSchema])
 def list_proposals(
@@ -565,13 +758,13 @@ def list_proposals(
             # 🔍 SEARCH FUNCTIONALITY - CORRIGIDO
             if search and search.strip():
                 search_filter = f"%{search}%"
-                query = query.filter(
+                query = query.join(Harmonizer, Proposal.author_id == Harmonizer.id).filter(
                     or_(
                         Proposal.title.ilike(search_filter),
                         Proposal.description.ilike(search_filter),
-                        Proposal.author_username.ilike(search_filter)
+                        Harmonizer.username.ilike(search_filter)
                     )
-                )
+)
             
             # 🎯 FILTERS - CORRIGIDOS
             if filter == "latest":
@@ -665,65 +858,80 @@ def list_proposals(
         proposals_list = []
         for prop in proposals:
             if SUPER_NOVA_AVAILABLE:
-                # Buscar votos e comentários com ORM
                 votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == prop.id).all()
                 comments = db.query(Comment).filter(Comment.proposal_id == prop.id).all()
-                
+                # Author image
+                author_img_val = ""
+                if prop.author and getattr(prop.author, "profile_pic", None):
+                    if prop.author.profile_pic.startswith("http://") or prop.author.profile_pic.startswith("https://"):
+                        author_img_val = prop.author.profile_pic
+                    else:
+                        author_img_val = f"/uploads/{prop.author.profile_pic}"
+                # Media from payload
+                payload = getattr(prop, "payload", {}) or {}
+                image_val = f"/uploads/{payload.get('image','')}" if payload.get("image") else ""
+                file_val = f"/uploads/{payload.get('file','')}" if payload.get("file") else ""
                 proposal_data = {
                     "id": prop.id,
                     "title": prop.title,
-                    "userName": prop.author_username,
-                    "userInitials": (prop.author_username[:2]).upper() if prop.author_username else "",
-                    "text": prop.description,
-                    "author_img": prop.author_img,
-                    "time": prop.created_at.isoformat() if hasattr(prop, 'created_at') and prop.created_at else "",
-                    "author_type": prop.author_type,
-                    "likes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"],
-                    "dislikes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"],
-                    "comments": [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments],
+                    "userName": prop.author.username if prop.author else "",
+                    "userInitials": (prop.author.username[:2]).upper() if prop.author else "",
+                    "text": prop.description or "",
+                    "author_img": author_img_val,
+                    "time": prop.created_at.isoformat() if prop.created_at else "",
+                    "author_type": getattr(prop, "author_type", "human"),
+                    "likes": [{"voter": v.harmonizer_id, "type": getattr(v, "voter_type", "")} for v in votes if getattr(v, "vote", getattr(v, "choice", "")) == "up"],
+                    "dislikes": [{"voter": v.harmonizer_id, "type": getattr(v, "voter_type", "")} for v in votes if getattr(v, "vote", getattr(v, "choice", "")) == "down"],
+                    "comments": [
+                        {
+                            "proposal_id": c.proposal_id,
+                            "user": c.author.username if hasattr(c, "author") and c.author else getattr(c, "user", "Anonymous"),
+                            "user_img": f"/uploads/{c.author.profile_pic}" if hasattr(c, "author") and c.author and getattr(c.author, "profile_pic", None) else getattr(c, "user_img", "/uploads/default_avatar.png"),
+                            "comment": getattr(c, "content", getattr(c, "comment", ""))
+                        }
+                        for c in comments
+                    ],
                     "media": {
-                        "image": f"/uploads/{prop.image}" if prop.image else "",
-                        "video": prop.video,
-                        "link": prop.link,
-                        "file": f"/uploads/{prop.file}" if prop.file else ""
+                        "image": image_val,
+                        "video": payload.get("video", ""),
+                        "link": payload.get("link", ""),
+                        "file": file_val
                     }
                 }
             else:
-                # Buscar votos e comentários com SQL direto
                 votes_result = db.execute(
                     text("SELECT * FROM votes WHERE proposal_id = :pid"),
                     {"pid": prop.id}
                 )
                 votes = votes_result.fetchall()
-                
                 comments_result = db.execute(
                     text("SELECT * FROM comments WHERE proposal_id = :pid"),
                     {"pid": prop.id}
                 )
                 comments = comments_result.fetchall()
-                
+                author_img_val = f"/uploads/{prop.author_img}" if getattr(prop, "author_img", "") else ""
+                image_val = f"/uploads/{prop.image}" if getattr(prop, "image", "") else ""
+                file_val = f"/uploads/{prop.file}" if getattr(prop, "file", "") else ""
                 proposal_data = {
                     "id": prop.id,
                     "title": prop.title,
                     "userName": prop.author,
                     "userInitials": (prop.author[:2]).upper() if prop.author else "",
                     "text": prop.body,
-                    "author_img": prop.author_img,
+                    "author_img": author_img_val,
                     "time": prop.date,
                     "author_type": prop.author_type,
                     "likes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"],
                     "dislikes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"],
                     "comments": [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments],
                     "media": {
-                        "image": f"/uploads/{prop.image}" if prop.image else "",
+                        "image": image_val,
                         "video": prop.video,
                         "link": prop.link,
-                        "file": f"/uploads/{prop.file}" if prop.file else ""
+                        "file": file_val
                     }
                 }
-            
             proposals_list.append(proposal_data)
-        
         return proposals_list
         
     except Exception as e:
@@ -736,6 +944,12 @@ def list_proposals(
 @app.post("/votes")
 def add_vote(v: VoteIn, db: Session = Depends(get_db)):
     try:
+        # Converter voter para harmonizer_id
+        harmonizer = db.query(Harmonizer).filter(Harmonizer.username == v.voter).first()
+        if not harmonizer:
+            raise HTTPException(status_code=404, detail="Voter not found")
+        harmonizer_id = harmonizer.id
+
         # Registrar no sistema ponderado do SuperNova se disponível
         if SUPER_NOVA_AVAILABLE:
             try:
@@ -748,39 +962,23 @@ def add_vote(v: VoteIn, db: Session = Depends(get_db)):
             except Exception as e:
                 print(f"⚠️ Weighted voting failed: {e}")
                 register_vote_result = {"ok": True, "note": "weighted system failed"}
+
+        # Verificar se voto já existe
+        existing_vote = db.query(ProposalVote).filter(
+            ProposalVote.proposal_id == v.proposal_id,
+            ProposalVote.harmonizer_id == harmonizer_id
+        ).first()
         
-        # Registrar no banco
-        if SUPER_NOVA_AVAILABLE:
-            # Verificar se voto já existe
-            existing_vote = db.query(ProposalVote).filter(
-                ProposalVote.proposal_id == v.proposal_id,
-                ProposalVote.voter == v.voter
-            ).first()
-            
-            if existing_vote:
-                existing_vote.choice = v.choice
-                existing_vote.voter_type = v.voter_type
-            else:
-                vote = ProposalVote(
-                    proposal_id=v.proposal_id,
-                    voter=v.voter,
-                    choice=v.choice,
-                    voter_type=v.voter_type
-                )
-                db.add(vote)
+        if existing_vote:
+            existing_vote.vote = v.choice
         else:
-            # SQL direto
-            # Remover voto existente se houver
-            db.execute(
-                text("DELETE FROM votes WHERE proposal_id = :pid AND voter = :voter"),
-                {"pid": v.proposal_id, "voter": v.voter}
+            vote = ProposalVote(
+                proposal_id=v.proposal_id,
+                harmonizer_id=harmonizer_id,
+                vote=v.choice
             )
-            # Inserir novo voto
-            db.execute(
-                text("INSERT INTO votes (proposal_id, voter, choice, voter_type) VALUES (:pid, :voter, :choice, :vtype)"),
-                {"pid": v.proposal_id, "voter": v.voter, "choice": v.choice, "vtype": v.voter_type}
-            )
-        
+            db.add(vote)
+
         db.commit()
         return {"ok": True, "weighted_system": SUPER_NOVA_AVAILABLE}
         
@@ -956,7 +1154,7 @@ def get_user_karma(username: str, db: Session = Depends(get_db)):
         "network_centrality": user.network_centrality
     }
 
-# --- Restante dos endpoints (mantidos da sua versão) ---
+# --- Restante dos endpoints ---
 @app.get("/decisions", response_model=List[DecisionSchema])
 def list_decisions(db: Session = Depends(get_db)):
     if SUPER_NOVA_AVAILABLE:
@@ -1009,31 +1207,42 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
         row = db.query(Proposal).filter(Proposal.id == pid).first()
         if not row:
             raise HTTPException(status_code=404, detail="Proposal not found")
-        
+
         votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == pid).all()
-        likes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"]
-        dislikes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"]
-        
+        likes = [{"voter": v.voter, "type": v.voter_type} for v in votes if getattr(v, "choice", getattr(v, "vote", "")) == "up"]
+        dislikes = [{"voter": v.voter, "type": v.voter_type} for v in votes if getattr(v, "choice", getattr(v, "vote", "")) == "down"]
+
         comments = db.query(Comment).filter(Comment.proposal_id == pid).all()
         comments_list = [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments]
-        
+
+        # author_img: use profile_pic if available
+        author_img_val = ""
+        if row.author and getattr(row.author, "profile_pic", None):
+            if row.author.profile_pic.startswith("http://") or row.author.profile_pic.startswith("https://"):
+                author_img_val = row.author.profile_pic
+            else:
+                author_img_val = f"/uploads/{row.author.profile_pic}"
+        # media fields from payload
+        payload = getattr(row, "payload", {}) or {}
+        image_val = f"/uploads/{payload.get('image','')}" if payload.get("image") else ""
+        file_val = f"/uploads/{payload.get('file','')}" if payload.get("file") else ""
         return ProposalSchema(
             id=row.id,
             title=row.title,
-            text=row.description,
-            userName=row.author_username,
-            userInitials=(row.author_username[:2]).upper() if row.author_username else "",
-            author_img=row.author_img,
+            text=row.description,  # Mapear description para text
+            userName=row.author.username if row.author else "",
+            userInitials=(row.author.username[:2]).upper() if row.author and row.author.username else "",
+            author_img=author_img_val,
             time=row.created_at.isoformat() if row.created_at else "",
-            author_type=row.author_type,
+            author_type=getattr(row, "author_type", "human"),
             likes=likes,
             dislikes=dislikes,
             comments=comments_list,
             media={
-                "image": f"/uploads/{row.image}" if row.image else "",
-                "video": row.video,
-                "link": row.link,
-                "file": f"/uploads/{row.file}" if row.file else ""
+                "image": image_val,
+                "video": payload.get("video", ""),
+                "link": payload.get("link", ""),
+                "file": file_val
             }
         )
     else:
@@ -1044,7 +1253,7 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
         row = result.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Proposal not found")
-        
+
         votes_result = db.execute(
             text("SELECT * FROM votes WHERE proposal_id = :pid"),
             {"pid": pid}
@@ -1052,14 +1261,14 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
         votes = votes_result.fetchall()
         likes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"]
         dislikes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"]
-        
+
         comments_result = db.execute(
             text("SELECT * FROM comments WHERE proposal_id = :pid"),
             {"pid": pid}
         )
         comments = comments_result.fetchall()
         comments_list = [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments]
-        
+
         return ProposalSchema(
             id=row.id,
             title=row.title,
