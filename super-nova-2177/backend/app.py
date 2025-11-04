@@ -3,7 +3,8 @@ import os
 import time
 import shutil
 import uuid
-from datetime import datetime
+import datetime
+from datetime import timedelta
 from fastapi import FastAPI, HTTPException, Query, Form, UploadFile, File, Depends, APIRouter
 from pydantic import BaseModel
 from typing import Optional, List, Dict
@@ -229,13 +230,14 @@ class ProposalIn(BaseModel):
     file: Optional[str] = ""
 
 class ProposalSchema(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
     id: int
     title: str
     text: str
     userName: str
     userInitials: str
     author_img: str
-    time: datetime
+    time: datetime.datetime
     author_type: Optional[str] = ""
     likes: List[Dict] = []
     dislikes: List[Dict] = []
@@ -423,8 +425,6 @@ def profile(username: str, db: Session = Depends(get_db)):
         "status": "online"
     }
 
-# --- Create proposal ---
-# --- Create proposal ---
 @app.post("/proposals", response_model=ProposalSchema, summary="Create a new proposal")
 async def create_proposal(
     title: str = Form(...),
@@ -437,6 +437,7 @@ async def create_proposal(
     link: str = Form(""),
     image: Optional[UploadFile] = File(None),
     file: Optional[UploadFile] = File(None),
+    voting_deadline: Optional[datetime.datetime] = Form(None),
     db: Session = Depends(get_db)
 ):
     if author_type not in ("human", "company", "ai"):
@@ -460,29 +461,39 @@ async def create_proposal(
         file_path = os.path.join(uploads_dir, file_filename)
         with open(file_path, "wb") as f:
             f.write(await file.read())
-    
-    created_at = datetime.now() if not date else datetime.fromisoformat(date)
+
+    from datetime import datetime as dt
+    created_at = dt.now() if not date else dt.fromisoformat(date)
+    if not voting_deadline:
+        voting_deadline = dt.utcnow() + timedelta(days=7)
 
     try:
         if SUPER_NOVA_AVAILABLE:
+            # Procurar o autor na tabela Harmonizer
+            author_obj = db.query(Harmonizer).filter(Harmonizer.username == author).first()
+            if not author_obj:
+                raise HTTPException(status_code=400, detail=f"Author '{author}' not found. Please create user first.")
+
             # ORM SuperNova
+            import datetime
             db_proposal = Proposal(
                 title=title,
                 description=body,
-                author_username=author,
+                author_id=author_obj.id,
                 author_type=author_type,
                 author_img=author_img,
                 image=image_filename,
                 video=video,
                 link=link,
                 file=file_filename,
-                created_at=created_at
+                created_at=created_at,
+                voting_deadline=created_at + datetime.timedelta(days=7)
             )
             db.add(db_proposal)
             db.commit()
             db.refresh(db_proposal)
 
-            user_name = db_proposal.author_username
+            user_name = author_obj.username
         else:
             # Fallback SQL direto
             result = db.execute(

@@ -383,6 +383,8 @@ class Proposal(Base):
     author_img = Column(String, default="")
     image = Column(String, default="")
     file = Column(String, default="")
+    video = Column(String, default="")
+    link = Column(String, default="")
 
     group = relationship("Group", back_populates="proposals")
     votes = relationship("ProposalVote", back_populates="proposal", cascade="all, delete-orphan")
