@@ -98,6 +98,8 @@ function InputFields({ setDiscard, setPosts, refetchPosts, activeBE }) {
       formData.append("title", newPost.title);
       formData.append("body", newPost.text);
       formData.append("author", newPost.userName);
+      formData.append("userName", newPost.userName);
+      formData.append("userInitials", (newPost.userName || "").slice(0,2).toUpperCase());
       formData.append("author_type", newPost.author_type);
       formData.append("author_img", newPost.author_img);
       formData.append("date", newPost.date);

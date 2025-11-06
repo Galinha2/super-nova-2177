@@ -468,18 +468,29 @@ async def create_proposal(
         voting_deadline = dt.utcnow() + timedelta(days=7)
 
     try:
-        if SUPER_NOVA_AVAILABLE:
-            # Procurar o autor na tabela Harmonizer
-            author_obj = db.query(Harmonizer).filter(Harmonizer.username == author).first()
-            if not author_obj:
-                raise HTTPException(status_code=400, detail=f"Author '{author}' not found. Please create user first.")
+        # Corrigido: definir corretamente userName e userInitials, preferindo userName se existir, senão author, senão "Unknown"
+        final_user = None
+        if author and author.strip():
+            final_user = author.strip()
+        if 'userName' in locals() and userName and userName.strip():
+            final_user = userName.strip()
+        if not final_user:
+            final_user = "Unknown"
+        initials = (final_user[:2].upper() if final_user else "UN")
 
-            # ORM SuperNova
+        if SUPER_NOVA_AVAILABLE:
+            # Try to find harmonizer user, but allow free text username
+            author_obj = db.query(Harmonizer).filter(Harmonizer.username == final_user).first()
+            if author_obj:
+                user_name = author_obj.username
+            else:
+                user_name = final_user
             import datetime
             db_proposal = Proposal(
                 title=title,
                 description=body,
-                author_id=author_obj.id,
+                userName=user_name,
+                userInitials=(user_name[:2]).upper() if user_name else "UN",
                 author_type=author_type,
                 author_img=author_img,
                 image=image_filename,
@@ -492,8 +503,6 @@ async def create_proposal(
             db.add(db_proposal)
             db.commit()
             db.refresh(db_proposal)
-
-            user_name = author_obj.username
         else:
             # Fallback SQL direto
             result = db.execute(
@@ -503,7 +512,7 @@ async def create_proposal(
                     RETURNING id
                 """),
                 {
-                    "title": title, "body": body, "author": author, "author_type": author_type,
+                    "title": title, "body": body, "author": final_user, "author_type": author_type,
                     "author_img": author_img, "date": created_at.isoformat(),
                     "image": image_filename, "video": video, "link": link, "file": file_filename
                 }
@@ -516,7 +525,7 @@ async def create_proposal(
             db_proposal.id = row[0]
             db_proposal.title = title
             db_proposal.description = body
-            db_proposal.author_username = author
+            db_proposal.author_username = final_user
             db_proposal.author_type = author_type
             db_proposal.author_img = author_img
             db_proposal.image = image_filename
@@ -524,14 +533,14 @@ async def create_proposal(
             db_proposal.link = link
             db_proposal.file = file_filename
             db_proposal.created_at = created_at
-            user_name = author
+            user_name = final_user
 
         return ProposalSchema(
             id=db_proposal.id,
             title=db_proposal.title,
             text=db_proposal.description,
             userName=user_name,
-            userInitials=(user_name[:2]).upper() if user_name else "",
+            userInitials=(user_name[:2]).upper() if user_name else "UN",
             author_img=db_proposal.author_img or "",
             time=db_proposal.created_at.isoformat(),
             author_type=db_proposal.author_type,
@@ -545,7 +554,6 @@ async def create_proposal(
                 "file": f"/uploads/{db_proposal.file}" if db_proposal.file else ""
             }
         )
-    
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create proposal: {str(e)}")
@@ -587,12 +595,27 @@ def list_proposals(
 
         proposals_list = []
         for prop in proposals:
-            # Obter nome do autor
+            # Garantir que userName é sempre uma string do username do utilizador (Harmonizer.username) se possível
             if SUPER_NOVA_AVAILABLE:
-                author = db.query(Harmonizer).filter(Harmonizer.id == prop.author_id).first()
-                user_name = author.username if author else "Unknown"
+                user_name = ""
+                if hasattr(prop, "author_id") and prop.author_id:
+                    author_obj = db.query(Harmonizer).filter(Harmonizer.id == prop.author_id).first()
+                    if author_obj and hasattr(author_obj, "username"):
+                        user_name = author_obj.username
+                if not user_name:
+                    # fallback para userName, author_username, author, "Unknown"
+                    if hasattr(prop, "userName") and prop.userName:
+                        user_name = prop.userName
+                    elif hasattr(prop, "author_username") and prop.author_username:
+                        user_name = prop.author_username
+                    elif hasattr(prop, "author") and prop.author:
+                        user_name = prop.author
+                    else:
+                        user_name = "Unknown"
+                user_initials = (user_name[:2].upper() if user_name else "UN")
             else:
-                user_name = getattr(prop, "author", "Unknown")
+                user_name = getattr(prop, "userName", None) or getattr(prop, "author", None) or "Unknown"
+                user_initials = (user_name[:2].upper() if user_name else "UN")
 
             # Votos e comentários
             votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == prop.id).all() if SUPER_NOVA_AVAILABLE else []
@@ -601,14 +624,14 @@ def list_proposals(
             proposals_list.append({
                 "id": prop.id,
                 "title": prop.title,
-                "userName": user_name,
-                "userInitials": user_name[:2].upper() if user_name else "",
+                "userName": str(user_name),
+                "userInitials": user_initials,
                 "text": prop.description,
                 "author_img": getattr(prop, "author_img", ""),
                 "time": prop.created_at.isoformat() if getattr(prop, "created_at", None) else "",
                 "author_type": getattr(prop, "author_type", "human"),
-                "likes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.vote == "up"],
-                "dislikes": [{"voter": v.voter, "type": v.voter_type} for v in votes if v.vote == "down"],
+                "likes": [{"voter": v.voter, "type": v.voter_type} for v in votes if getattr(v, "vote", getattr(v, "choice", None)) == "up"],
+                "dislikes": [{"voter": v.voter, "type": v.voter_type} for v in votes if getattr(v, "vote", getattr(v, "choice", None)) == "down"],
                 "comments": [{"proposal_id": c.proposal_id, "user": getattr(c, "user", "Anonymous"), "user_img": getattr(c, "user_img", ""), "comment": getattr(c, "comment", "")} for c in comments],
                 "media": {
                     "image": f"/uploads/{getattr(prop, 'image', '')}" if getattr(prop, "image", None) else "",
@@ -911,20 +934,37 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
         row = db.query(Proposal).filter(Proposal.id == pid).first()
         if not row:
             raise HTTPException(status_code=404, detail="Proposal not found")
-        
+
+        # Garantir que userName é sempre uma string do username do utilizador (Harmonizer.username) se possível
+        user_name = ""
+        if hasattr(row, "author_id") and row.author_id:
+            author_obj = db.query(Harmonizer).filter(Harmonizer.id == row.author_id).first()
+            if author_obj and hasattr(author_obj, "username"):
+                user_name = author_obj.username
+        if not user_name:
+            if hasattr(row, "userName") and row.userName:
+                user_name = row.userName
+            elif hasattr(row, "author_username") and row.author_username:
+                user_name = row.author_username
+            elif hasattr(row, "author") and row.author:
+                user_name = row.author
+            else:
+                user_name = "Unknown"
+        user_initials = (user_name[:2].upper() if user_name else "UN")
+
         votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == pid).all()
         likes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"]
         dislikes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"]
-        
+
         comments = db.query(Comment).filter(Comment.proposal_id == pid).all()
         comments_list = [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments]
-        
+
         return ProposalSchema(
             id=row.id,
             title=row.title,
             text=row.description,
-            userName=row.author_username,
-            userInitials=(row.author_username[:2]).upper() if row.author_username else "",
+            userName=str(user_name),
+            userInitials=user_initials,
             author_img=row.author_img,
             time=row.created_at.isoformat() if row.created_at else "",
             author_type=row.author_type,
@@ -946,7 +986,7 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
         row = result.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Proposal not found")
-        
+
         votes_result = db.execute(
             text("SELECT * FROM votes WHERE proposal_id = :pid"),
             {"pid": pid}
@@ -954,20 +994,22 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
         votes = votes_result.fetchall()
         likes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"]
         dislikes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"]
-        
+
         comments_result = db.execute(
             text("SELECT * FROM comments WHERE proposal_id = :pid"),
             {"pid": pid}
         )
         comments = comments_result.fetchall()
         comments_list = [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments]
-        
+
+        user_name = getattr(row, "userName", None) or getattr(row, "author", None) or "Unknown"
+        user_initials = (user_name[:2].upper() if user_name else "UN")
         return ProposalSchema(
             id=row.id,
             title=row.title,
             text=row.body,
-            userName=row.author,
-            userInitials=(row.author[:2]).upper() if row.author else "",
+            userName=str(user_name),
+            userInitials=user_initials,
             author_img=row.author_img,
             time=row.date,
             author_type=row.author_type,

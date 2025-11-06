@@ -1,4 +1,6 @@
+import logging
 from fastapi import FastAPI, HTTPException
+logging.basicConfig(level=logging.INFO)
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from sqlalchemy import (
@@ -56,6 +58,8 @@ proposals = Table(
     Column("title", String),
     Column("body", String),
     Column("author", String),
+    Column("userName", String),
+    Column("userInitials", String),
     Column("author_img", String),
     Column("date", String),
 )
@@ -105,7 +109,9 @@ app = FastAPI(title="superNova_2177 backend", version="0.2")
 class ProposalIn(BaseModel):
     title: str
     body: str
-    author: str
+    author: Optional[str] = None
+    userName: Optional[str] = None
+    userInitials: Optional[str] = None
     author_img: Optional[str] = ""
     date: Optional[str] = ""
 
@@ -160,27 +166,48 @@ def profile(username: str):
     return {"username": username, "avatar_url": "", "bio": "Explorer of superNova_2177.", "followers": 2315, "following": 1523, "status": "online"}
 
 
+from fastapi import Form, File, UploadFile
+
 @app.post("/proposals", response_model=Proposal)
-def create_proposal(p: ProposalIn):
+async def create_proposal(
+    title: str = Form(...),
+    body: str = Form(...),
+    author: str = Form(None),
+    userName: str = Form(None),
+    author_type: str = Form(None),
+    author_img: str = Form(""),
+    date: str = Form(""),
+    file: UploadFile = File(None),
+    image: UploadFile = File(None),
+    video: UploadFile = File(None),
+    link: str = Form("")
+):
+    print("DEBUG create_proposal userName:", userName, "author:", author)
+    final_user = userName or author or ""
+    initials = (final_user[:2].upper() if final_user else "UN")
+
     stmt = insert(proposals).values(
-        title=p.title,
-        body=p.body,
-        author=p.author,
-        author_img=p.author_img or "",
-        date=p.date or ""
+        title=title,
+        body=body,
+        author=final_user,
+        userName=final_user,
+        userInitials=initials,
+        author_img=author_img,
+        date=date
     ).returning(proposals)
+
     with engine.connect() as conn:
         result: Result = conn.execute(stmt)
         conn.commit()
         row = result.fetchone()
-        if not row:
-            raise HTTPException(status_code=500, detail="Failed to create proposal")
+
+        logging.info("DEBUG inserted row userName: %s author: %s", row.userName, row.author)
         return Proposal(
             id=row.id,
             title=row.title,
             text=row.body,
-            userName=row.author,
-            userInitials=(row.author[:2]).upper() if row.author else "",
+            userName=row.userName,
+            userInitials=row.userInitials,
             author_img=row.author_img,
             time=row.date,
             likes=[],
@@ -205,12 +232,14 @@ def list_proposals():
             comment_stmt = select(comments).where(comments.c.proposal_id == row.id)
             comment_res = conn.execute(comment_stmt).fetchall()
             comments_list = [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comment_res]
-            # Prepare userInitials
-            user_initials = (row.author[:2]).upper() if row.author else ""
+            user_name = row.userName or row.author or ""
+            if not user_name:
+                user_name = "Unknown"
+            user_initials = (row.userInitials or user_name[:2]).upper()
             proposals_list.append({
                 "id": row.id,
                 "title": row.title,
-                "userName": row.author,
+                "userName": user_name,
                 "userInitials": user_initials,
                 "text": row.body,
                 "author_img": row.author_img,

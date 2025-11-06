@@ -33,7 +33,7 @@ export default function Error({ messages }) {
   if (!visibleMessages || visibleMessages.length === 0) return null;
 
   return (
-  <div className="fixed top-2 lg:top-auto lg:bottom-10 right-1 lg:right-10 flex flex-col items-end gap-2 z-9999">
+  <div className="fixed flex flex-col items-end gap-2 top-2 lg:top-auto lg:bottom-10 right-1 lg:right-10 z-9999">
   {visibleMessages.map((message, index) => (
     <div
       key={index}

@@ -373,7 +373,7 @@ class Proposal(Base):
     title = Column(String, nullable=False)
     description = Column(Text)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True, index=True)
-    author_id = Column(Integer, ForeignKey("harmonizers.id"), nullable=False)
+    author_id = Column(Integer, ForeignKey("harmonizers.id"), nullable=True, default=None)
     status = Column(String, default="open", index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     voting_deadline = Column(DateTime(timezone=True), nullable=False)
@@ -385,6 +385,8 @@ class Proposal(Base):
     file = Column(String, default="")
     video = Column(String, default="")
     link = Column(String, default="")
+    userName = Column(String, default="")
+    userInitials = Column(String, default="")
 
     group = relationship("Group", back_populates="proposals")
     votes = relationship("ProposalVote", back_populates="proposal", cascade="all, delete-orphan")
