@@ -30,6 +30,8 @@ function ProposalCard({
 }) {
   const [showComments, setShowComments] = useState(false);
   const [localComments, setLocalComments] = useState(comments);
+  const [readMore, setReadMore] = useState(false);
+
   const { userData } = useUser();
   const backendUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -64,13 +66,13 @@ function ProposalCard({
         className ? "" : "rounded-[25px]"
       } bg-white shadow-md w-100 md:w-130 lg:w-150 xl:w-200 flex flex-col items-center gap-4 ${className}`}
     >
-      <div className="flex justify-between w-full items-center">
+      <div className="flex items-center justify-between w-full">
         <div className="flex items-center justify-start w-full gap-2">
           {logo ? (
             <img
               src={getFullImageUrl(logo)}
               alt="user avatar"
-              className="rounded-full shadow-md w-8 h-8"
+              className="w-8 h-8 rounded-full shadow-md"
             />
           ) : (
             <div className="rounded-full bg-[var(--gray)] shadow-sm p-2 w-8 h-8 flex items-center justify-center">
@@ -96,10 +98,9 @@ function ProposalCard({
         </p>
       </div>
 
-      <div className="flex w-full gap-3 flex-col">
+      <div className="flex flex-col w-full gap-3">
         <Link href={`/proposals/${id}`} className="flex flex-col gap-3">
-
-          <h1 className="text-[1.5em] my-[-10px]">{title}</h1>
+          <h1 className="text-[1.5em] my-[-10px] break-words">{title}</h1>
 
           {media.image && (
             <>
@@ -122,7 +123,7 @@ function ProposalCard({
               >
                 {imageZoom && (
                   <IoMdArrowRoundBack
-                    className="absolute cursor-pointer top-5 left-5 text-3xl text-white"
+                    className="absolute text-3xl text-white cursor-pointer top-5 left-5"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -145,7 +146,10 @@ function ProposalCard({
             <>
               {!videoLoaded && (
                 <div className="bg-[var(--gray)] rounded-md shadow-sm flex items-center justify-center h-50 md:h-65 lg:h-80 xl:h-100 w-full">
-                  <img src={className ? "../spinner.svg" : "./spinner.svg"} alt="loading" />
+                  <img
+                    src={className ? "../spinner.svg" : "./spinner.svg"}
+                    alt="loading"
+                  />
                 </div>
               )}
               <div
@@ -165,19 +169,57 @@ function ProposalCard({
               </div>
             </>
           )}
-          {text && <p className="post-text text-[0.9em] w-full">{text}</p>}
-          </Link>
-          {media.link && (
-            <a
-              href={media.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {media.link}
-            </a>
+          {text && (
+            <p className="flex flex-col items-start post-text text-[0.9em] w-full">
+              {text.length > 250 && !readMore ? (
+                <>
+                  {text.slice(0, 250) + "..."}{" "}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setReadMore(true);
+                    }}
+                    className="text-blue-400"
+                  >
+                    Show More
+                  </button>
+                </>
+              ) : (
+                <>
+                  {text.length > 250 && readMore ? (
+                    <>
+                      {text}
+                      <button
+                        className="text-blue-400"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setReadMore(false);
+                        }}
+                      >
+                        Show Less
+                      </button>
+                    </>
+                  ) : (
+                    text
+                  )}
+                </>
+              )}
+            </p>
           )}
+        </Link>
+        {media.link && (
+          <a
+            href={media.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {media.link}
+          </a>
+        )}
 
         {media.file && (
           <span

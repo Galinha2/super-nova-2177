@@ -146,6 +146,7 @@ function InputFields({ setDiscard, setPosts, refetchPosts, activeBE }) {
             type="text"
             placeholder="Insert Title"
             value={title}
+            maxLength={50}
             onChange={(e) => setTitle(e.target.value)}
             className="bg-white rounded-full shadow-md px-4 py-1 w-full text-[0.6em]"
           />

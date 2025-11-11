@@ -73,16 +73,29 @@ function Proposal({ activeBE, setErrorMsg, setNotify }) {
   });
 
   return (
-    <div className="mb-50 mt-20 lg:mb-10 xl:mx-auto lg:mr-80 flex flex-col-reverse lg:flex-row items-center lg:items-start m-auto lg:mt-50  gap-10 justify-center relative">
+    <div className="relative flex flex-col-reverse items-center justify-center gap-10 m-auto mt-15 mb-50 lg:mb-10 xl:mx-auto lg:ml-80 lg:flex-row lg:items-start lg:mt-50">
       <div className="flex flex-col gap-10">
+        
+        <div className="lg:hidden">
+          <CreatePost discard={discard} setDiscard={setDiscard} />
+        </div>
+
         {discard ? (
-          <CreatePost setDiscard={setDiscard} />
+          <div className="hidden lg:block lg:mb-[-40px]">
+            <CreatePost discard={discard} setDiscard={setDiscard} />
+          </div>
         ) : (
-          <div ref={inputRef}>
+          <div ref={inputRef} className="hidden lg:block">
             <InputFields activeBE={activeBE} setDiscard={setDiscard} />
           </div>
         )}
-        <div className="flex lg:flex-col gap-10 flex-col">
+
+        {!discard && (
+          <div className="w-full lg:hidden">
+            <InputFields activeBE={activeBE} setDiscard={setDiscard} />
+          </div>
+        )}
+        <div className="flex flex-col gap-10 lg:flex-col">
           {isLoading ? (
             Array.from({ length: 3 }).map((_, i) => <CardLoading key={i} />)
           ) : posts && posts.length > 0 ? (

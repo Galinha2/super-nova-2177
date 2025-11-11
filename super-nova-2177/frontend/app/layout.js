@@ -31,15 +31,19 @@ const queryClient = new QueryClient({
 export default function RootLayout({ children }) {
   const [errorMsg, setErrorMsg] = useState([]);
   const [notify, setNotify] = useState([]);
+  const [showSettings, setShowSettings] = useState(false);
+
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body className={`${interTight.variable} flex antialiased`}>
+      <body className={`${interTight.variable} flex antialiased`} onClick={() => setShowSettings(false)}>
         <QueryClientProvider client={queryClient}>
           {errorMsg.length > 0 && <Error messages={errorMsg} />}
           {notify.length > 0 && <Notification messages={notify} />}
           <UserProvider>
             <ActiveBEProvider>
               <HeaderWrapper
+                showSettings={showSettings} 
+                setShowSettings={setShowSettings}
                 setNotify={setNotify}
                 errorMsg={errorMsg}
                 setErrorMsg={setErrorMsg}

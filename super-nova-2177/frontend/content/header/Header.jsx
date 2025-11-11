@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LiquidGlass from "../liquid glass/LiquidGlass";
 import Link from "next/link";
 import { IoMdMenu, IoIosClose } from "react-icons/io";
@@ -9,11 +9,18 @@ import { IoBookOutline } from "react-icons/io5";
 import Settings from "./content/Settings";
 import content from "@/assets/content.json";
 
-function Header({activeBE, setActiveBE, errorMsg, setErrorMsg, setNotify}) {
-  const [showSettings, setShowSettings] = useState(false);
+function Header({
+  activeBE,
+  setActiveBE,
+  errorMsg,
+  setErrorMsg,
+  setNotify,
+  showSettings,
+  setShowSettings,
+}) {
   const menuItems = Object.values(content.header.titles);
-
-  // Mapeamento de ícones para os itens do menu
+  const [openProfile, setOpenProfile] = useState(false);
+  
   const iconsMap = {
     Home: LuSlack,
     Profile: FaRegUser,
@@ -24,26 +31,35 @@ function Header({activeBE, setActiveBE, errorMsg, setErrorMsg, setNotify}) {
     showSettings ? (
       <IoIosClose
         className="text-[var(--pink)] [filter:drop-shadow(0_0_7px_var(--pink))]"
-        onClick={() => setShowSettings(false)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowSettings(false);
+        }}
       />
     ) : (
       <IoMdMenu
         className="text-[var(--pink)] [filter:drop-shadow(0_0_7px_var(--pink))]"
-        onClick={() => setShowSettings(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowSettings(true);
+        }}
       />
     );
 
   return (
-    <div className="z-9002 hidden lg:block fixed top-5 left-1/2 transform -translate-x-1/2">
+    <div className="fixed hidden transform -translate-x-1/2 z-9002 lg:block top-5 left-1/2">
       <LiquidGlass className="flex items-center justify-center px-4 py-3 rounded-[33px]">
         <ul className="flex items-center justify-center gap-5 rounded-full">
-          <li>
+          <li onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setOpenProfile(!openProfile); }}>
             <img className="min-w-13 w-13" src="./supernova.png" alt="logo" />
           </li>
           {menuItems.map((item, index) => {
             const IconComponent = iconsMap[item];
             return (
-              <li key={index} className="rounded-full p-2 cursor-pointer px-5 py-2 transform transition-transform bgGray duration-300 hover:scale-105">
+              <li
+                key={index}
+                className="p-2 px-5 py-2 transition-transform duration-300 transform rounded-full cursor-pointer bgGray hover:scale-105"
+              >
                 <Link
                   href={`/${item.toLowerCase()}`}
                   className="cursor-pointer flex items-center justify-center font-semibold text-[0.6em] text-[var(--text-black)]"
@@ -56,17 +72,24 @@ function Header({activeBE, setActiveBE, errorMsg, setErrorMsg, setNotify}) {
               </li>
             );
           })}
-          <div className="cursor-pointer bgGray hover:scale-105 rounded-full p-2">
+          <div className="p-2 rounded-full cursor-pointer bgGray hover:scale-105">
             <ToggleIcon />
           </div>
         </ul>
       </LiquidGlass>
 
       {showSettings && (
-  <div className="absolute right-0 z-99290 mt-2 flex justify-end w-fit">
-    <Settings setNotify={setNotify} errorMsg={errorMsg} setErrorMsg={setErrorMsg} activeBE={activeBE} setActiveBE={setActiveBE}/>
-  </div>
-)}
+        <div className="absolute right-0 flex justify-end mt-2 z-99290 w-fit">
+          <Settings
+            setNotify={setNotify}
+            errorMsg={errorMsg}
+            setErrorMsg={setErrorMsg}
+            activeBE={activeBE}
+            setActiveBE={setActiveBE}
+            openProfile={openProfile}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -57,6 +57,104 @@ html {
   }
 }
 
+.settings-right {
+  top: 6rem;
+  right: -36rem;
+}
+
+@media (max-width: 1665px) {
+  .settings-right {
+    position: absolute;
+    right: -35rem;
+  }
+}
+
+@media (max-width: 1600px) {
+  .settings-right {
+    position: absolute;
+    right: -33rem;
+  }
+}
+
+@media (max-width: 1565px) {
+  .settings-right {
+    position: absolute;
+    right: -31rem;
+  }
+}
+
+@media (max-width: 1500px) {
+  .settings-right {
+    position: absolute;
+    right: -29rem;
+  }
+}
+
+@media (max-width: 1465px) {
+  .settings-right {
+    position: absolute;
+    right: -27rem;
+  }
+}
+@media (max-width: 1400px) {
+  .settings-right {
+    position: absolute;
+    right: -25rem;
+  }
+}
+@media (max-width: 1365px) {
+  .settings-right {
+    position: absolute;
+    right: -23rem;
+  }
+}
+@media (max-width: 1300px) {
+  .settings-right {
+    position: absolute;
+    right: -21rem;
+  }
+}
+@media (max-width: 1280px) {
+  .settings-right {
+    position: absolute;
+    right: -19rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-right {
+    position: static;
+    right: auto;
+    top: auto;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .settings-right {
+    position: static;
+    right: auto;
+    top: auto;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .settings-right {
+    position: absolute;
+    right: -38%;
+    top: auto;
+    transform: translateX(-50%);
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .settings-right-tow {
+    position: absolute;
+    right: -65%;
+    top: auto;
+    transform: translateX(-50%);
+  }
+}
+
 .bgGray {
   background-color: var(--gray);
   opacity: 0.85;
@@ -67,8 +165,7 @@ html {
 
 .aiShadow {
   filter: drop-shadow(-1px 1px 1px rgb(255, 255, 255))
-        drop-shadow(-1px -1px 1px var(--pink))
-        drop-shadow(1px 1px 1px var(--blue))
+    drop-shadow(-1px -1px 1px var(--pink)) drop-shadow(1px 1px 1px var(--blue));
 }
 
 .bgWhite {
@@ -214,13 +311,8 @@ button {
   inset: 0;
   border-radius: 50%;
   padding: 2px;
-  background: conic-gradient(
-    var(--blue),
-    var(--pink)
-  );
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
-    linear-gradient(#fff 0 0);
+  background: conic-gradient(var(--blue), var(--pink));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   animation: spinBorder 3s linear infinite;

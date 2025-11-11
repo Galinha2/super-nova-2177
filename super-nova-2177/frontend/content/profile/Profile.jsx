@@ -72,10 +72,10 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
 
   return (
     <div className="text-[var(--text-black)] bgWhiteTrue shadow-md p-2 rounded-[20px]">
-      <div className="fixed right-0 bottom-0">
+      <div className="fixed bottom-0 right-0">
       </div>
       <h1>{settings.profile}</h1>
-      <div className="text-[0.6em] flex flex-col gap-3">
+      <div className="text-[0.55em] flex flex-col gap-3">
         <div>
           <h1>{settings.species}</h1>
           <div className="flex gap-2">
@@ -99,10 +99,10 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
             ))}
           </div>
         </div>
-        <div className="flex gap-4 items-start justify-start">
+        <div className="flex items-start justify-start gap-4">
           <div className="flex flex-col items-start justify-center">
             <h1>{settings.avatar}</h1>
-            <div className="avatar-selection flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 avatar-selection">
               <input
                 type="file"
                 id="avatarInput"
@@ -137,7 +137,7 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
           <div>
             <h1>{settings.name}</h1>
             <input
-              className="bgWhite rounded-full h-10 text-[0.7em] px-5 w-63 md:w-70"
+              className="bgWhite rounded-full h-10 text-[0.7em] px-5 w-63 md:w-67"
               type="text"
               value={getName}
               onChange={(e) => setGetName(e.target.value)}
@@ -145,7 +145,7 @@ function Profile({errorMsg, setErrorMsg, setNotify}) {
             />
           </div>
         </div>
-        <div className="flex font-bold gap-3">
+        <div className="flex gap-3 font-bold">
           <button
             onClick={handleUser}
             className="bg-[var(--pink)] shadow-[var(--shadow-pink)] mt-2 text-[0.8em] rounded-full text-white hover:scale-98 w-20 py-1 px-2"
