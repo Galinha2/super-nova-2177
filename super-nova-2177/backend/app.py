@@ -18,10 +18,9 @@ print("=== DEBUG INFO ===")
 print(f"Current directory: {os.getcwd()}")
 print(f"Directory contents: {os.listdir('.')}")
 
-# PRIMEIRO: Encontrar o diretório do SuperNova
 possible_paths = [
-    '/app/supernova_2177_ui_weighted',  # Caminho no container
-    '/supernova_2177_ui_weighted',      # Caminho alternativo
+    '/app/supernova_2177_ui_weighted',
+    '/supernova_2177_ui_weighted',
     os.path.join(os.path.dirname(__file__), 'supernova_2177_ui_weighted'),
     os.path.join(os.path.dirname(__file__), '..', 'supernova_2177_ui_weighted'),
 ]
@@ -36,22 +35,21 @@ for path in possible_paths:
         print(f"Contents: {os.listdir(path)}")
         break
 
-# DEPOIS: Verificar o arquivo específico
 if supernova_dir:
     supernova_file_path = os.path.join(supernova_dir, 'supernova_2177.py')
-    print(f"=== VERIFICAÇÃO DE CAMINHO ===")
-    print(f"Caminho do arquivo supernova_2177.py: {supernova_file_path}")
-    print(f"O arquivo existe: {os.path.isfile(supernova_file_path)}")
+    print(f"=== PATH CHECK ===")
+    print(f"supernova_2177.py file path: {supernova_file_path}")
+    print(f"File exists: {os.path.isfile(supernova_file_path)}")
 
     if os.path.isfile(supernova_file_path):
         try:
             with open(supernova_file_path, 'r') as f:
                 first_lines = [next(f) for _ in range(10)]
-            print("Primeiras linhas do arquivo:")
+            print("First lines of file:")
             for line in first_lines:
                 print(">", line.rstrip())
         except Exception as e:
-            print(f"Não foi possível ler o arquivo: {e}")
+            print(f"Could not read file: {e}")
 
 if not supernova_dir:
     print("❌ SuperNova directory not found in any known location")
@@ -88,7 +86,7 @@ else:
         traceback.print_exc()
         SUPER_NOVA_AVAILABLE = False
 
-# Fallback de SessionLocal e get_db se SuperNova não estiver disponível
+#
 if not SUPER_NOVA_AVAILABLE:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
@@ -135,7 +133,7 @@ if not SUPER_NOVA_AVAILABLE:
     
     DB_ENGINE_URL = "sqlite:///standalone.db"
 
-# Se SuperNova não está disponível, configurar fallback
+#
 if not SUPER_NOVA_AVAILABLE:
     print("🔄 Using fallback database configuration")
     from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, ForeignKey, Text, DateTime
@@ -170,28 +168,21 @@ if not SUPER_NOVA_AVAILABLE:
             db.close()
 
 def register_vote(proposal_id: int, voter: str, choice: str, species: str = "human"):
-    """
-    Regista um voto ponderado no sistema SuperNova.
-    Aplica pesos diferentes consoante a espécie votante (humano, empresa, IA).
-    """
     weights = {"human": 1.0, "company": 1.5, "ai": 1.2}
     weight = weights.get(species.lower(), 1.0)
-
-    # Aqui podes ligar à BD se quiseres guardar o voto
     try:
         session = SessionLocal()
         vote_entry = ProposalVote(
             proposal_id=proposal_id,
-            voter=voter,
-            choice=choice,
-            voter_type=species,
-            weight=weight
+            harmonizer_id=voter,
+            vote=choice,
+            voter_type=species
         )
         session.add(vote_entry)
         session.commit()
         return {"ok": True, "proposal_id": proposal_id, "voter": voter, "choice": choice, "weight": weight}
     except Exception as e:
-        print(f"⚠️ Erro ao registar voto ponderado: {e}")
+        print(f"⚠️ Error registering weighted vote: {e}")
         return {"ok": False, "error": str(e)}
     finally:
         if 'session' in locals():
@@ -340,7 +331,7 @@ def supernova_status():
         }
     }
 
-# --- Debug endpoints para testar search e filtros ---
+#
 @app.get("/debug-supernova")
 def debug_supernova():
     import os
@@ -350,15 +341,13 @@ def debug_supernova():
         "python_path": sys.path,
         "current_dir": os.getcwd(),
         "dir_contents": os.listdir('.'),
-        "supernova_dir_exists": os.path.exists('./supernova-2177-ui-weighted')
+        "supernova_dir_exists": os.path.exists('./supernova_2177_ui_weighted')
     }
 
 @app.get("/debug/search-test")
 def debug_search(search: str = Query(...), db: Session = Depends(get_db)):
-    """Teste de funcionalidade de search"""
     try:
         if SUPER_NOVA_AVAILABLE:
-            # Teste com ORM
             results = db.query(Proposal).filter(
                 or_(
                     Proposal.title.ilike(f"%{search}%"),
@@ -377,7 +366,6 @@ def debug_search(search: str = Query(...), db: Session = Depends(get_db)):
                 "method": "orm"
             }
         else:
-            # Teste com SQL direto
             result = db.execute(
                 text("SELECT id, title, author FROM proposals WHERE title ILIKE :search OR body ILIKE :search OR author ILIKE :search LIMIT 5"),
                 {"search": f"%{search}%"}
@@ -393,7 +381,7 @@ def debug_search(search: str = Query(...), db: Session = Depends(get_db)):
     except Exception as e:
         return {"error": str(e), "query_working": False}
 
-# --- Profile endpoint ---
+#
 @app.get("/profile/{username}", summary="Get user profile")
 def profile(username: str, db: Session = Depends(get_db)):
     if SUPER_NOVA_AVAILABLE:
@@ -468,7 +456,6 @@ async def create_proposal(
         voting_deadline = dt.utcnow() + timedelta(days=7)
 
     try:
-        # Corrigido: definir corretamente userName e userInitials, preferindo userName se existir, senão author, senão "Unknown"
         final_user = None
         if author and author.strip():
             final_user = author.strip()
@@ -479,7 +466,6 @@ async def create_proposal(
         initials = (final_user[:2].upper() if final_user else "UN")
 
         if SUPER_NOVA_AVAILABLE:
-            # Try to find harmonizer user, but allow free text username
             author_obj = db.query(Harmonizer).filter(Harmonizer.username == final_user).first()
             if author_obj:
                 user_name = author_obj.username
@@ -504,7 +490,6 @@ async def create_proposal(
             db.commit()
             db.refresh(db_proposal)
         else:
-            # Fallback SQL direto
             result = db.execute(
                 text("""
                     INSERT INTO proposals (title, body, author, author_type, author_img, date, image, video, link, file)
@@ -521,7 +506,7 @@ async def create_proposal(
             row = result.fetchone()
             if not row:
                 raise HTTPException(status_code=500, detail="Failed to create proposal")
-            db_proposal = type("Temp", (), {})()  # objeto temporário
+            db_proposal = type("Temp", (), {})()
             db_proposal.id = row[0]
             db_proposal.title = title
             db_proposal.description = body
@@ -557,7 +542,7 @@ async def create_proposal(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create proposal: {str(e)}")
-# --- LIST PROPOSALS - CORRIGIDO com search e filtros funcionando ---
+#
 @app.get("/proposals", response_model=List[ProposalSchema])
 def list_proposals(
     filter: str = Query("all"),
@@ -595,7 +580,6 @@ def list_proposals(
 
         proposals_list = []
         for prop in proposals:
-            # Garantir que userName é sempre uma string do username do utilizador (Harmonizer.username) se possível
             if SUPER_NOVA_AVAILABLE:
                 user_name = ""
                 if hasattr(prop, "author_id") and prop.author_id:
@@ -617,7 +601,7 @@ def list_proposals(
                 user_name = getattr(prop, "userName", None) or getattr(prop, "author", None) or "Unknown"
                 user_initials = (user_name[:2].upper() if user_name else "UN")
 
-            # Votos e comentários
+            #
             votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == prop.id).all() if SUPER_NOVA_AVAILABLE else []
             comments = db.query(Comment).filter(Comment.proposal_id == prop.id).all() if SUPER_NOVA_AVAILABLE else []
 
@@ -649,111 +633,10 @@ def list_proposals(
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Failed to list proposals: {str(e)}")
 
-# --- Vote endpoint ---
-@app.post("/votes")
-def add_vote(v: VoteIn, db: Session = Depends(get_db)):
-    try:
-        # Registrar no sistema ponderado do SuperNova se disponível
-        if SUPER_NOVA_AVAILABLE:
-            try:
-                register_vote_result = register_vote(
-                    proposal_id=v.proposal_id,
-                    voter=v.voter,
-                    choice=v.choice,
-                    species=v.voter_type
-                )
-            except Exception as e:
-                print(f"⚠️ Weighted voting failed: {e}")
-                register_vote_result = {"ok": True, "note": "weighted system failed"}
-        
-        # Registrar no banco
-        if SUPER_NOVA_AVAILABLE:
-            # Verificar se voto já existe
-            existing_vote = db.query(ProposalVote).filter(
-                ProposalVote.proposal_id == v.proposal_id,
-                ProposalVote.voter == v.voter
-            ).first()
-            
-            if existing_vote:
-                existing_vote.choice = v.choice
-                existing_vote.voter_type = v.voter_type
-            else:
-                vote = ProposalVote(
-                    proposal_id=v.proposal_id,
-                    voter=v.voter,
-                    choice=v.choice,
-                    voter_type=v.voter_type
-                )
-                db.add(vote)
-        else:
-            # SQL direto
-            # Remover voto existente se houver
-            db.execute(
-                text("DELETE FROM proposal_votes WHERE proposal_id = :pid AND voter = :voter"),
-                {"pid": v.proposal_id, "voter": v.voter}
-            )
-            # Inserir novo voto
-            db.execute(
-                text("INSERT INTO proposal_votes (proposal_id, voter, choice, voter_type) VALUES (:pid, :voter, :choice, :vtype)"),
-                {"pid": v.proposal_id, "voter": v.voter, "choice": v.choice, "vtype": v.voter_type}
-            )
-        
-        db.commit()
-        return {"ok": True, "weighted_system": SUPER_NOVA_AVAILABLE}
-        
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to register vote: {str(e)}")
-
+#
+#
 # --- Tally endpoints ---
-@app.get("/proposals/{pid}", response_model=ProposalSchema)
-def get_proposal(pid: int, db: Session = Depends(get_db)):
-    try:
-        prop = db.query(Proposal).filter(Proposal.id == pid).first()
-        if not prop:
-            raise HTTPException(status_code=404, detail="Proposal not found")
-
-        # Obter nome do autor
-        author = db.query(Harmonizer).filter(Harmonizer.id == prop.author_id).first()
-        user_name = author.username if author else "Unknown"
-
-        # Votos
-        votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == pid).all()
-        likes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.vote == "up"]
-        dislikes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.vote == "down"]
-
-        # Comentários
-        comments = db.query(Comment).filter(Comment.proposal_id == pid).all()
-        comments_list = [{"proposal_id": c.proposal_id,
-                          "user": getattr(c, "user", "Anonymous"),
-                          "user_img": getattr(c, "user_img", ""),
-                          "comment": getattr(c, "comment", "")} for c in comments]
-
-        return ProposalSchema(
-            id=prop.id,
-            title=prop.title,
-            text=prop.description,
-            userName=user_name,
-            userInitials=user_name[:2].upper() if user_name else "",
-            author_img=getattr(prop, "author_img", ""),
-            time=prop.created_at.isoformat() if prop.created_at else "",
-            author_type=getattr(prop, "author_type", "human"),
-            likes=likes,
-            dislikes=dislikes,
-            comments=comments_list,
-            media={
-                "image": f"/uploads/{getattr(prop, 'image', '')}" if getattr(prop, "image", None) else "",
-                "video": getattr(prop, "video", ""),
-                "link": getattr(prop, "link", ""),
-                "file": f"/uploads/{getattr(prop, 'file', '')}" if getattr(prop, "file", None) else ""
-            }
-        )
-
-    except Exception as e:
-        import traceback
-        print(f"❌ Error in get_proposal: {str(e)}")
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Failed to get proposal: {str(e)}")
+# REMOVE DUPLICATE get_proposal ENDPOINT
     
 @app.get("/proposals/{pid}/tally-weighted")
 def tally_weighted(pid: int):
@@ -783,7 +666,7 @@ def decide(pid: int, threshold: float = 0.6, db: Session = Depends(get_db)):
             if total > 0 and (tally_result["up"] / total) >= threshold:
                 status = "accepted"
         
-        # Salvar decisão
+        #
         if SUPER_NOVA_AVAILABLE:
             existing = db.query(Decision).filter(Decision.proposal_id == pid).first()
             if existing:
@@ -810,7 +693,7 @@ def decide(pid: int, threshold: float = 0.6, db: Session = Depends(get_db)):
         
         db.commit()
         
-        # Retornar decisão
+        #
         if SUPER_NOVA_AVAILABLE:
             decision_obj = db.query(Decision).filter(Decision.proposal_id == pid).first()
             return DecisionSchema(
@@ -840,9 +723,9 @@ def add_comment(c: CommentIn, db: Session = Depends(get_db)):
         if SUPER_NOVA_AVAILABLE:
             comment = Comment(
                 proposal_id=c.proposal_id,
-                user=c.user or "Anonymous",
-                user_img=c.user_img or "/uploads/default_avatar.png",
-                comment=c.comment
+                content=c.comment,
+                author_id=1,
+                vibenode_id=1
             )
             db.add(comment)
         else:
@@ -928,6 +811,7 @@ def list_runs(db: Session = Depends(get_db)):
         result = db.execute(text("SELECT * FROM runs ORDER BY id DESC"))
         return [RunSchema(id=r.id, decision_id=r.decision_id, status=r.status) for r in result.fetchall()]
 
+# --- Proposal detail endpoint (final version, single definition) ---
 @app.get("/proposals/{pid}", response_model=ProposalSchema)
 def get_proposal(pid: int, db: Session = Depends(get_db)):
     if SUPER_NOVA_AVAILABLE:
@@ -953,11 +837,26 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
         user_initials = (user_name[:2].upper() if user_name else "UN")
 
         votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == pid).all()
-        likes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"]
-        dislikes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"]
+        # Adjust likes/dislikes fields to use harmonizer_id if available, else fallback to voter (username)
+        likes = []
+        dislikes = []
+        for v in votes:
+            voter_val = getattr(v, "harmonizer_id", None)
+            if not voter_val:
+                voter_val = getattr(v, "voter", None)
+            # fallback: if still None, set as string
+            if not voter_val:
+                voter_val = ""
+            vote_field = getattr(v, "vote", None)
+            if vote_field is None:
+                vote_field = getattr(v, "choice", None)
+            if vote_field == "up":
+                likes.append({"voter": voter_val, "type": v.voter_type})
+            elif vote_field == "down":
+                dislikes.append({"voter": voter_val, "type": v.voter_type})
 
         comments = db.query(Comment).filter(Comment.proposal_id == pid).all()
-        comments_list = [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments]
+        comments_list = [{"proposal_id": c.proposal_id, "user": getattr(c, "user", "Anonymous"), "user_img": getattr(c, "user_img", ""), "comment": getattr(c, "comment", "")} for c in comments]
 
         return ProposalSchema(
             id=row.id,
@@ -992,8 +891,9 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
             {"pid": pid}
         )
         votes = votes_result.fetchall()
-        likes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "up"]
-        dislikes = [{"voter": v.voter, "type": v.voter_type} for v in votes if v.choice == "down"]
+        # fallback for harmonizer_id: use voter if exists
+        likes = [{"voter": getattr(v, "harmonizer_id", None) or getattr(v, "voter", ""), "type": v.voter_type} for v in votes if getattr(v, "choice", None) == "up"]
+        dislikes = [{"voter": getattr(v, "harmonizer_id", None) or getattr(v, "voter", ""), "type": v.voter_type} for v in votes if getattr(v, "choice", None) == "down"]
 
         comments_result = db.execute(
             text("SELECT * FROM comments WHERE proposal_id = :pid"),
@@ -1007,20 +907,20 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
         return ProposalSchema(
             id=row.id,
             title=row.title,
-            text=row.body,
+            text=getattr(row, "body", None) or getattr(row, "description", ""),
             userName=str(user_name),
             userInitials=user_initials,
-            author_img=row.author_img,
-            time=row.date,
-            author_type=row.author_type,
+            author_img=getattr(row, "author_img", ""),
+            time=getattr(row, "date", "") or getattr(row, "created_at", ""),
+            author_type=getattr(row, "author_type", ""),
             likes=likes,
             dislikes=dislikes,
             comments=comments_list,
             media={
-                "image": f"/uploads/{row.image}" if row.image else "",
-                "video": row.video,
-                "link": row.link,
-                "file": f"/uploads/{row.file}" if row.file else ""
+                "image": f"/uploads/{getattr(row, 'image', '')}" if getattr(row, "image", None) else "",
+                "video": getattr(row, "video", ""),
+                "link": getattr(row, "link", ""),
+                "file": f"/uploads/{getattr(row, 'file', '')}" if getattr(row, "file", None) else ""
             }
         )
 
@@ -1105,6 +1005,14 @@ def remove_vote(proposal_id: int, voter: str, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to remove vote: {str(e)}")
+
+
+# --- Register votes_router ---
+
+# Import votes_router from db_utils to avoid circular import
+from backend.votes_router import router as votes_router
+app.include_router(votes_router)
+
 
 if __name__ == "__main__":
     import uvicorn

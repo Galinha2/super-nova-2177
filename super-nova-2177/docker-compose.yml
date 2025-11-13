@@ -1,57 +1,35 @@
-# Docker Compose configuration for development with hot reload
-
-version: "3.8"
-
 services:
-  db:
+  supernova_db:
     image: postgres:15
     container_name: supernova_db
-    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example
       POSTGRES_DB: postgres
-    volumes:
-      - db_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
-    networks:
-      - default
+      - "5432:5432"
+    volumes:
+      - supernova_db_data:/var/lib/postgresql/data
 
-  backend:
+  supernova_backend:
     build: ./backend
     container_name: supernova_backend
-    restart: always
-    depends_on:
-      - db
+    command: uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app/backend
+      - ./supernova_2177_ui_weighted:/app/supernova_2177_ui_weighted
     environment:
-      DATABASE_URL: postgresql://postgres:example@db:5432/postgres
+      DATABASE_URL: postgresql://postgres:example@supernova_db:5432/postgres
+    depends_on:
+      - supernova_db
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app
 
-      - ./backend/uploads:/app/uploads
-
-      - ./supernova_2177_ui_weighted:/app/supernova_2177_ui_weighted
-    networks:
-      - default
-
-  frontend:
+  supernova_frontend:
     build: ./frontend
     container_name: supernova_frontend
-    restart: always
-    depends_on:
-      - backend
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    networks:
-      - default
 
 volumes:
-  db_data:
+  supernova_db_data:

@@ -26,7 +26,7 @@ function LikesDeslikes({
 
     if (errors.length > 0) {
       setErrorMsg(errors);
-      return false; // interrompe e indica falha
+      return false;
     }
 
     await fetch("http://localhost:8000/votes", {
@@ -58,20 +58,15 @@ function LikesDeslikes({
     }
 
     if (clicked === "like") {
-      // remover like
       await removeVote();
       setLikes(likes - 1);
       setClicked(null);
-
     } else {
       const success = await sendVote("up");
       if (!success) return;
-
-      // atualizar contadores
       if (clicked === "dislike") {
         setDislikes(dislikes - 1);
       }
-
       setLikes(likes + 1);
       setClicked("like");
     }
@@ -84,19 +79,15 @@ function LikesDeslikes({
     }
 
     if (clicked === "dislike") {
-      // remover dislike
       await removeVote();
       setDislikes(dislikes - 1);
       setClicked(null);
     } else {
       const success = await sendVote("down");
       if (!success) return;
-
       if (clicked === "like") {
         setLikes(likes - 1);
-  
       }
-
       setDislikes(dislikes + 1);
       setClicked("dislike");
     }
