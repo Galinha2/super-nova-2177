@@ -34,7 +34,7 @@ function LikesDeslikes({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         proposal_id: proposalId,
-        voter: userData.name,
+        username: userData.name,
         choice: choice,
         voter_type: userData.species || "human",
       }),
@@ -44,7 +44,7 @@ function LikesDeslikes({
 
   async function removeVote() {
     await fetch(
-      `http://localhost:8000/votes?proposal_id=${proposalId}&voter=${userData.name}`,
+      `http://localhost:8000/votes?proposal_id=${proposalId}&username=${userData.name}`,
       {
         method: "DELETE",
       }
