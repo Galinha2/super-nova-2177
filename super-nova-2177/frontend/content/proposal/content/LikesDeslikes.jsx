@@ -136,7 +136,7 @@ function LikesDeslikes({
           />
         )}
       </div>
-      <div className={`absolute ${className ? "-top-[-45px]" : "-top-45 md:-top-45 lg:-top-45 xl:-top-45"}`}>
+      <div className={`absolute ${className ? "-top-[-45px]" : "-top-55 md:-top-55 lg:-top-55 xl:-top-55"}`}>
         {action ? (
           <LikesInfo
             proposalId={proposalId}

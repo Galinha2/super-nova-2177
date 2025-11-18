@@ -1,17 +1,11 @@
-
-FROM node:20-alpine
-
+FROM node:20-bullseye-slim
 
 WORKDIR /app
 
-
 COPY package*.json ./
-
-# Instala dependências
 RUN npm install
 
 COPY . .
 
 EXPOSE 3000
-
-CMD ["npx", "next", "dev", "-H", "0.0.0.0"]
+CMD ["npm", "run", "dev"]

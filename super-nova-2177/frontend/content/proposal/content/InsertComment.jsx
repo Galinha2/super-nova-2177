@@ -74,13 +74,13 @@ function InsertComment({
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="flex gap-2 items-center justify-start mb-5">
+    <div className="flex items-center justify-start gap-2 mb-5">
       <div className="rounded-full bg-[var(--gray)] shadow-sm h-10 w-17 md:w-13 flex items-center justify-center overflow-hidden">
         {userData.avatar && isValidImage(userData.avatar) && !imgError ? (
           <img
             src={userData.avatar}
             alt={userData.name}
-            className="h-10 w-10 object-cover rounded-full"
+            className="object-cover w-10 h-10 rounded-full"
             onError={() => setImgError(true)}
           />
         ) : (

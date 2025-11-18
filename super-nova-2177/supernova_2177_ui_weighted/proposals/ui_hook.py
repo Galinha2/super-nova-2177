@@ -51,10 +51,30 @@ async def list_proposals_ui(_: Dict[str, Any]) -> Dict[str, Any]:
     try:
         records: List[Proposal] = db.query(Proposal).all()
         proposals = []
+
         for p in records:
-            d = p.__dict__.copy()
-            d.pop("_sa_instance_state", None)
+            d = {
+                "id": p.id,
+                "title": p.title,
+                "description": p.description,
+                "group_id": p.group_id,
+                "author_id": p.author_id,
+                "status": p.status,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "voting_deadline": p.voting_deadline.isoformat() if p.voting_deadline else None,
+                "payload": p.payload,
+                "author_type": p.author_type,
+                "author_img": p.author_img,
+                "image": p.image,
+                "file": p.file,
+                "video": p.video,
+                "link": p.link,
+                "userName": p.userName,
+                "userInitials": p.userInitials,
+                "votes_count": len(p.votes) if p.votes else 0
+            }
             proposals.append(d)
+
         result = {"proposals": proposals}
     finally:
         db.close()

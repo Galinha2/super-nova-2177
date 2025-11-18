@@ -7,6 +7,7 @@ import { IoMenu, IoBookOutline } from "react-icons/io5";
 import { LuSlack } from "react-icons/lu";
 import Settings from "./content/Settings";
 import { IoIosClose } from "react-icons/io";
+import { useUser } from "../profile/UserContext";
 
 function HeaderMobile({
   activeBE,
@@ -20,6 +21,8 @@ function HeaderMobile({
   const [openProfile, setOpenProfile] = useState(false);
   const header = Object.values(content.header.mobiletitles);
   const [showHeader, setShowHeader] = useState(true);
+
+  const { userData } = useUser();
 
   const iconsMap = {
     Home: [LuSlack, "Home"],
@@ -35,8 +38,28 @@ function HeaderMobile({
     >
       <LiquidGlass className="flex items-center justify-center px-4 border-[1px] border-white py-3 rounded-[33px]">
         <ul className="flex items-center justify-center gap-5">
-         <li onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setOpenProfile(!openProfile); }}>
-            <img className="min-w-13 w-13" src="./supernova.png" alt="logo" />
+          <li
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSettings(!showSettings);
+              setOpenProfile(!openProfile);
+            }}
+          >
+            {userData.avatar ? (
+              <img className="rounded-full shadow-md min-w-13 w-13 h-13 min-h-13" src={userData.avatar} alt="user logo" />
+            ) : userData.name ? (
+              <button className="min-w-13 shadow-md w-13 h-13 min-h-13 rounded-full bg-[var(--gray)] flex items-center justify-center text-[0.8em] font-bold">
+                {(() => {
+                  if (!userData.name) return "";
+                  const trimmed = userData.name.trim().replace(/\s+/g, " ");
+                  const names = trimmed.split(" ");
+                  if (names.length === 1) return names[0].substring(0, 2).toUpperCase();
+                  return names[0][0].toUpperCase() + names[1][0].toUpperCase();
+                })()}
+              </button>
+            ) : (
+              <img className="min-w-13 w-13" src="./supernova.png" alt="logo" />
+            )}
           </li>
           {header.map((item, index) => {
             const IconComponent = iconsMap[item]?.[0];

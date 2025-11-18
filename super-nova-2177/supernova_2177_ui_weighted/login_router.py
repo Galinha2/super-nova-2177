@@ -21,20 +21,20 @@ from superNova_2177 import (
     get_db,
     verify_password,
 )
+from supernova_2177_ui_weighted.harmonizer_schema import HarmonizerSchema
 from universe_manager import UniverseManager
 
 router = APIRouter()
 
 
 
-@router.post("/token", response_model=Token, tags=["Harmonizers"])
+
+@router.post("/token", tags=["Harmonizers"])
 def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    user = (
-        db.query(Harmonizer).filter(Harmonizer.username == form_data.username).first()
-    )
+    user = db.query(Harmonizer).filter(Harmonizer.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -44,13 +44,13 @@ def login_for_access_token(
         raise HTTPException(status_code=400, detail="Inactive user")
     if not user.consent_given:
         raise InvalidConsentError("User has revoked consent.")
+
     streaks = user.engagement_streaks or {}
     try:
-        last_login = datetime.datetime.fromisoformat(
-            streaks.get("last_login", "1970-01-01T00:00:00")
-        )
+        last_login = datetime.datetime.fromisoformat(streaks.get("last_login", "1970-01-01T00:00:00"))
     except ValueError:
         last_login = datetime.datetime(1970, 1, 1)
+
     now = datetime.datetime.utcnow()
     if (now.date() - last_login.date()).days == 1:
         streaks["daily"] = streaks.get("daily", 0) + 1
@@ -61,14 +61,12 @@ def login_for_access_token(
     db.commit()
 
     universe_id = UniverseManager.initialize_for_entity(user.id, user.species)
-    access_token = create_access_token(
-        {"sub": user.username, "universe_id": universe_id}
-    )
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "universe_id": universe_id,
-    }
+    access_token = create_access_token({"sub": user.username, "universe_id": universe_id})
+
+    from supernova_2177_ui_weighted.harmonizer_schema import HarmonizerSchema
+
+    # Retornar via Pydantic schema
+    return HarmonizerSchema.from_orm(user)
 
 
 @router.post("/login", tags=["Harmonizers"])

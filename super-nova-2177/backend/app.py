@@ -543,6 +543,21 @@ async def create_proposal(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create proposal: {str(e)}")
 #
+# --- Harmonizer serialization helper ---
+def serialize_harmonizer(h):
+    if not h:
+        return None
+    # Only select safe fields for serialization
+    return {
+        "id": getattr(h, "id", None),
+        "username": getattr(h, "username", None),
+        "avatar_url": getattr(h, "avatar_url", "") if h else "",
+        "species": getattr(h, "species", None),
+        "karma_score": float(getattr(h, "karma_score", 0)) if hasattr(h, "karma_score") else 0,
+        "harmony_score": float(getattr(h, "harmony_score", 0)) if hasattr(h, "harmony_score") else 0,
+        "creative_spark": float(getattr(h, "creative_spark", 0)) if hasattr(h, "creative_spark") else 0,
+    }
+
 @app.get("/proposals", response_model=List[ProposalSchema])
 def list_proposals(
     filter: str = Query("all"),
@@ -582,6 +597,7 @@ def list_proposals(
         for prop in proposals:
             if SUPER_NOVA_AVAILABLE:
                 user_name = ""
+                author_obj = None
                 if hasattr(prop, "author_id") and prop.author_id:
                     author_obj = db.query(Harmonizer).filter(Harmonizer.id == prop.author_id).first()
                     if author_obj and hasattr(author_obj, "username"):
@@ -605,6 +621,37 @@ def list_proposals(
             votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == prop.id).all() if SUPER_NOVA_AVAILABLE else []
             comments = db.query(Comment).filter(Comment.proposal_id == prop.id).all() if SUPER_NOVA_AVAILABLE else []
 
+            # Serialize Harmonizer for likes/dislikes
+            likes = []
+            dislikes = []
+            for v in votes:
+                voter_val = getattr(v, "harmonizer_id", None)
+                harmonizer_obj = None
+                if SUPER_NOVA_AVAILABLE and voter_val:
+                    harmonizer_obj = db.query(Harmonizer).filter(Harmonizer.id == voter_val).first()
+                # fallback to voter username if no harmonizer
+                if not harmonizer_obj:
+                    voter = getattr(v, "voter", None)
+                else:
+                    voter = serialize_harmonizer(harmonizer_obj)
+                vote_field = getattr(v, "vote", None)
+                if vote_field is None:
+                    vote_field = getattr(v, "choice", None)
+                if vote_field == "up":
+                    likes.append({"voter": voter, "type": v.voter_type})
+                elif vote_field == "down":
+                    dislikes.append({"voter": voter, "type": v.voter_type})
+
+            # Corrigir a construção de comments_list
+            comments_list = []
+            for c in comments:
+                author_obj = db.query(Harmonizer).filter(Harmonizer.id == c.author_id).first() if getattr(c, "author_id", None) else None
+                comments_list.append({
+                    "proposal_id": c.proposal_id,
+                    "user": getattr(author_obj, "username", "Anonymous") if author_obj else "Anonymous",
+                    "user_img": getattr(author_obj, "avatar_url", "") if author_obj else "",
+                    "comment": getattr(c, "content", "")
+                })
             proposals_list.append({
                 "id": prop.id,
                 "title": prop.title,
@@ -614,9 +661,9 @@ def list_proposals(
                 "author_img": getattr(prop, "author_img", ""),
                 "time": prop.created_at.isoformat() if getattr(prop, "created_at", None) else "",
                 "author_type": getattr(prop, "author_type", "human"),
-                "likes": [{"voter": v.voter, "type": v.voter_type} for v in votes if getattr(v, "vote", getattr(v, "choice", None)) == "up"],
-                "dislikes": [{"voter": v.voter, "type": v.voter_type} for v in votes if getattr(v, "vote", getattr(v, "choice", None)) == "down"],
-                "comments": [{"proposal_id": c.proposal_id, "user": getattr(c, "user", "Anonymous"), "user_img": getattr(c, "user_img", ""), "comment": getattr(c, "comment", "")} for c in comments],
+                "likes": likes,
+                "dislikes": dislikes,
+                "comments": comments_list,
                 "media": {
                     "image": f"/uploads/{getattr(prop, 'image', '')}" if getattr(prop, "image", None) else "",
                     "video": getattr(prop, "video", ""),
@@ -721,11 +768,55 @@ def decide(pid: int, threshold: float = 0.6, db: Session = Depends(get_db)):
 def add_comment(c: CommentIn, db: Session = Depends(get_db)):
     try:
         if SUPER_NOVA_AVAILABLE:
+            # Obter author_id válido
+            author_obj = db.query(Harmonizer).filter(Harmonizer.username == c.user).first()
+            if not author_obj:
+                # Criar Harmonizer fallback se não existir
+                import datetime
+                author_obj = Harmonizer(
+                    username=c.user,
+                    email=f"{c.user}@example.com",  # Adicionado para satisfazer NOT NULL
+                    hashed_password="fallback",     # Necessário se campo NOT NULL
+                    profile_pic="default.jpg",
+                    bio="",
+                    is_active=True,
+                    is_admin=False,
+                    created_at=datetime.datetime.utcnow(),
+                    species="human",
+                    harmony_score=0.0,
+                    creative_spark=0.0,
+                    is_genesis=False,
+                    consent_given=True,
+                    cultural_preferences={},
+                    engagement_streaks=[],
+                    network_centrality=0.0,
+                    karma_score=0.0,
+                    last_passive_aura_timestamp=datetime.datetime.utcnow()
+                )
+                db.add(author_obj)
+                db.commit()
+                db.refresh(author_obj)
+            author_id = author_obj.id
+
+            # Obter vibenode_id válido
+            vibenode_obj = db.query(VibeNode).first()
+            if not vibenode_obj:
+                # Criar VibeNode fallback se não existir, garantindo author_id válido
+                vibenode_obj = VibeNode(
+                    name="default",
+                    author_id=author_obj.id  # Garante NOT NULL se necessário
+                )
+                db.add(vibenode_obj)
+                db.commit()
+                db.refresh(vibenode_obj)
+            vibenode_id = vibenode_obj.id
+
+            # Criar comentário
             comment = Comment(
                 proposal_id=c.proposal_id,
                 content=c.comment,
-                author_id=1,
-                vibenode_id=1
+                author_id=author_id,
+                vibenode_id=vibenode_id
             )
             db.add(comment)
         else:
@@ -821,6 +912,7 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
 
         # Garantir que userName é sempre uma string do username do utilizador (Harmonizer.username) se possível
         user_name = ""
+        author_obj = None
         if hasattr(row, "author_id") and row.author_id:
             author_obj = db.query(Harmonizer).filter(Harmonizer.id == row.author_id).first()
             if author_obj and hasattr(author_obj, "username"):
@@ -837,26 +929,37 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
         user_initials = (user_name[:2].upper() if user_name else "UN")
 
         votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == pid).all()
-        # Adjust likes/dislikes fields to use harmonizer_id if available, else fallback to voter (username)
+        # Serialize Harmonizer for likes/dislikes
         likes = []
         dislikes = []
         for v in votes:
             voter_val = getattr(v, "harmonizer_id", None)
-            if not voter_val:
-                voter_val = getattr(v, "voter", None)
-            # fallback: if still None, set as string
-            if not voter_val:
-                voter_val = ""
+            harmonizer_obj = None
+            if SUPER_NOVA_AVAILABLE and voter_val:
+                harmonizer_obj = db.query(Harmonizer).filter(Harmonizer.id == voter_val).first()
+            # fallback to voter username if no harmonizer
+            if not harmonizer_obj:
+                voter = getattr(v, "voter", None)
+            else:
+                voter = serialize_harmonizer(harmonizer_obj)
             vote_field = getattr(v, "vote", None)
             if vote_field is None:
                 vote_field = getattr(v, "choice", None)
             if vote_field == "up":
-                likes.append({"voter": voter_val, "type": v.voter_type})
+                likes.append({"voter": voter, "type": v.voter_type})
             elif vote_field == "down":
-                dislikes.append({"voter": voter_val, "type": v.voter_type})
+                dislikes.append({"voter": voter, "type": v.voter_type})
 
         comments = db.query(Comment).filter(Comment.proposal_id == pid).all()
-        comments_list = [{"proposal_id": c.proposal_id, "user": getattr(c, "user", "Anonymous"), "user_img": getattr(c, "user_img", ""), "comment": getattr(c, "comment", "")} for c in comments]
+        comments_list = []
+        for c in comments:
+            author_obj = db.query(Harmonizer).filter(Harmonizer.id == c.author_id).first() if getattr(c, "author_id", None) else None
+            comments_list.append({
+                "proposal_id": c.proposal_id,
+                "user": getattr(author_obj, "username", "Anonymous") if author_obj else "Anonymous",
+                "user_img": getattr(author_obj, "avatar_url", "") if author_obj else "",
+                "comment": getattr(c, "content", "")
+            })
 
         return ProposalSchema(
             id=row.id,

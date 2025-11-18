@@ -6,6 +6,7 @@ import { FaUser, FaBriefcase } from 'react-icons/fa';
 import { BsFillCpuFill } from 'react-icons/bs';
 
 function LikeSection({ icon: Icon, label, likes, dislikes }) {
+  
   return (
     <LiquidGlass className="rounded-full">
       <div className="flex rounded-[30px] px-1 py-1 w-70 justify-between items-center gap-3">
@@ -26,10 +27,37 @@ function LikeSection({ icon: Icon, label, likes, dislikes }) {
   );
 }
 
+function ApprovalHeatmap({ humanLikes, humanDislikes, companyLikes, companyDislikes, aiLikes, aiDislikes, approval }) {
+  const calcPercentage = (likes, dislikes) => {
+    const total = likes + dislikes;
+    return total === 0 ? 0 : (likes / total) * 100;
+  };
+
+  const humanPercentage = calcPercentage(humanLikes, humanDislikes);
+  const companyPercentage = calcPercentage(companyLikes, companyDislikes);
+  const aiPercentage = calcPercentage(aiLikes, aiDislikes);
+
+  const avgPercentage = (humanPercentage + companyPercentage + aiPercentage) / 3;
+  const clampedPercentage = Math.min(Math.max(avgPercentage, 0), 100);
+
+  return (
+    <div className={`relative h-6 overflow-hidden bg-gray-300 rounded-full shadow-md`}>
+      <div
+        className="w-full h-full transition-all duration-500 rounded-full"
+        style={{ width: `${clampedPercentage}%`, background: 'linear-gradient(to right, var(--blue), var(--pink))' }}
+      />
+      <div className="absolute inset-0 flex items-center justify-center w-full font-semibold text-white shadow-md select-none text-[0.45em]">
+        {approval ? `Approval rate: ${clampedPercentage.toFixed(0)}%` : `${clampedPercentage.toFixed(0)}%`}
+      </div>
+    </div>
+  );
+}
+
 function LikesInfo({ proposalId }) {
   const [likes, setLikes] = useState([]);
   const [dislikes, setDislikes] = useState([]);
-
+  const [approval, setApproval] = useState(false);
+  
   useEffect(() => {
     async function fetchVotes() {
       try {
@@ -56,11 +84,24 @@ function LikesInfo({ proposalId }) {
   const aiDislikes = dislikes.filter(v => v.type === 'ai').length;
 
   return (
-    <LiquidGlass className={"rounded-[25px]"}>
+    <LiquidGlass className={"rounded-[25px] z-999"}>
       <div className="flex flex-col rounded-[25px] p-2 gap-2">
         <LikeSection icon={FaUser} label="Humans" likes={humanLikes} dislikes={humanDislikes} />
         <LikeSection icon={FaBriefcase} label="Companies" likes={companyLikes} dislikes={companyDislikes} />
         <LikeSection icon={BsFillCpuFill} label="AI" likes={aiLikes} dislikes={aiDislikes} />
+        <LiquidGlass className="rounded-full mt-[-10px] w-full max-w-full">
+          <button onClick={() => setApproval(!approval)} className="p-1 w-70">
+            <ApprovalHeatmap
+              humanLikes={humanLikes}
+              humanDislikes={humanDislikes}
+              companyLikes={companyLikes}
+              companyDislikes={companyDislikes}
+              aiLikes={aiLikes}
+              aiDislikes={aiDislikes}
+              approval={approval}
+            />
+          </button>
+        </LiquidGlass>
       </div>
     </LiquidGlass>
   );
