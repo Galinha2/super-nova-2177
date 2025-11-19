@@ -1,48 +1,97 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
 import LiquidGlass from "../liquid glass/LiquidGlass";
 import Link from "next/link";
 import { IoMdMenu, IoIosClose } from "react-icons/io";
-import { LuSlack } from "react-icons/lu";
-import { FaRegUser } from "react-icons/fa";
-import { IoBookOutline } from "react-icons/io5";
 import Settings from "./content/Settings";
 import content from "@/assets/content.json";
+import { useUser } from "../profile/UserContext";
+import { IoHome } from "react-icons/io5";
+import { IoSearch } from "react-icons/io5";
 
-function Header({activeBE, setActiveBE, errorMsg, setErrorMsg, setNotify}) {
-  const [showSettings, setShowSettings] = useState(false);
+import { SearchInputContext } from "@/app/layout";
+
+function Header({
+  activeBE,
+  setActiveBE,
+  errorMsg,
+  setErrorMsg,
+  setNotify,
+  showSettings,
+  setShowSettings,
+}) {
+  const { userData } = useUser();
   const menuItems = Object.values(content.header.titles);
-
-  // Mapeamento de ícones para os itens do menu
+  const [openProfile, setOpenProfile] = useState(false);
+  
   const iconsMap = {
-    Home: LuSlack,
-    Proposals: IoBookOutline,
+    Proposals: IoHome,
+    Search: IoSearch,
   };
+
+  const { focusSearchInput } = useContext(SearchInputContext);
 
   const ToggleIcon = () =>
     showSettings ? (
       <IoIosClose
         className="text-[var(--pink)] [filter:drop-shadow(0_0_7px_var(--pink))]"
-        onClick={() => setShowSettings(false)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowSettings(false);
+        }}
       />
     ) : (
       <IoMdMenu
         className="text-[var(--pink)] [filter:drop-shadow(0_0_7px_var(--pink))]"
-        onClick={() => setShowSettings(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowSettings(true);
+        }}
       />
     );
 
   return (
-    <div className="z-9002 hidden lg:block fixed top-5 left-1/2 transform -translate-x-1/2">
+    <div className="fixed hidden transform -translate-x-1/2 z-9002 lg:block top-5 left-1/2">
       <LiquidGlass className="flex items-center justify-center px-4 py-3 rounded-[33px]">
         <ul className="flex items-center justify-center gap-5 rounded-full">
-          <li>
-            <img className="min-w-13 w-13" src="./supernova.png" alt="logo" />
+          <li onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); setOpenProfile(!openProfile); }}>
+            {userData.avatar ? (
+              <img className="rounded-full shadow-md min-w-13 w-13 h-13 min-h-13" src={userData.avatar} alt="user logo" />
+            ) : userData.name ? (
+              <buttxon className="min-w-13 shadow-md w-13 h-13 min-h-13 rounded-full bg-[var(--gray)] flex items-center justify-center text-[0.8em] font-bold">
+                {(() => {
+                  if (!userData.name) return "";
+                  const trimmed = userData.name.trim().replace(/\s+/g, " ");
+                  const names = trimmed.split(" ");
+                  if (names.length === 1) return names[0].substring(0, 2).toUpperCase();
+                  return names[0][0].toUpperCase() + names[1][0].toUpperCase();
+                })()}
+              </buttxon>
+            ) : (
+              <img className="min-w-13 w-13" src="./supernova.png" alt="logo" />
+            )}
           </li>
           {menuItems.map((item, index) => {
             const IconComponent = iconsMap[item];
+            if (item === "Search") {
+              return (
+                <li
+                  key={index}
+                  className="h-12 p-2 px-5 py-2 transition-transform duration-300 transform rounded-full cursor-pointer bgGray hover:scale-105 flex items-center justify-center font-semibold text-[0.6em] text-[var(--text-black)]"
+                  onClick={(e) => { e.stopPropagation(); focusSearchInput(); }}
+                >
+                  {IconComponent && (
+                    <IconComponent className="mr-2 text-[var(--text-black)] text-xl [filter:drop-shadow(0_0_3px_var(--blue))]" />
+                  )}
+                  {item}
+                </li>
+              );
+            }
             return (
-              <li key={index} className="rounded-full p-2 cursor-pointer px-5 py-2 transform transition-transform bgGray duration-300 hover:scale-105">
+              <li
+                key={index}
+                className="p-2 px-5 py-2 transition-transform duration-300 transform rounded-full cursor-pointer bgGray hover:scale-105"
+              >
                 <Link
                   href={`/${item.toLowerCase()}`}
                   className="cursor-pointer flex items-center justify-center font-semibold text-[0.6em] text-[var(--text-black)]"
@@ -50,22 +99,29 @@ function Header({activeBE, setActiveBE, errorMsg, setErrorMsg, setNotify}) {
                   {IconComponent && (
                     <IconComponent className="mr-2 text-[var(--text-black)] text-xl [filter:drop-shadow(0_0_3px_var(--blue))]" />
                   )}
-                  {item}
+                  {index === 0 ? "Home" : item  }
                 </Link>
               </li>
             );
           })}
-          <div className="cursor-pointer bgGray hover:scale-105 rounded-full p-2">
+          <div className="p-2 rounded-full cursor-pointer bgGray hover:scale-105">
             <ToggleIcon />
           </div>
         </ul>
       </LiquidGlass>
 
       {showSettings && (
-  <div className="absolute right-0 z-99290 mt-2 flex justify-end w-fit">
-    <Settings setNotify={setNotify} errorMsg={errorMsg} setErrorMsg={setErrorMsg} activeBE={activeBE} setActiveBE={setActiveBE}/>
-  </div>
-)}
+        <div className="absolute right-0 flex justify-end mt-2 z-99290 w-fit">
+          <Settings
+            setNotify={setNotify}
+            errorMsg={errorMsg}
+            setErrorMsg={setErrorMsg}
+            activeBE={activeBE}
+            setActiveBE={setActiveBE}
+            openProfile={openProfile}
+          />
+        </div>
+      )}
     </div>
   );
 }

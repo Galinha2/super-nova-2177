@@ -260,6 +260,7 @@ function ProposalCard({
                 name={c.user}
                 image={c.user_img}
                 comment={c.comment}
+                userSpecie={c.species}
               />
             ))}
           </div>

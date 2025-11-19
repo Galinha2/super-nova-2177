@@ -1,13 +1,13 @@
 {
   "header": {
     "titles": {
-      "home": "Home",
-      "proposals": "Proposals"
+      "home": "Proposals",
+      "search": "Search"
     },
     "mobiletitles": {
-      "placeholder": "Home",
+      "home": "Proposals",
       "profile": "Profile",
-      "proposals": "Proposals"
+      "search": "Search"
     },
     "settings": {
       "livebe": "Live BE",
@@ -29,6 +29,7 @@
   },
   "filters": {
     "all": "All",
+    "Popular": "Popular",
     "latest": "Latest",
     "oldest": "Oldest",
     "topLikes": "Top Liked",
