@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import LiquidGlass from "../liquid glass/LiquidGlass";
 import Link from "next/link";
 import { IoMdMenu, IoIosClose } from "react-icons/io";
@@ -9,6 +9,10 @@ import { IoBookOutline } from "react-icons/io5";
 import Settings from "./content/Settings";
 import content from "@/assets/content.json";
 import { useUser } from "../profile/UserContext";
+import { IoHome } from "react-icons/io5";
+import { IoSearch } from "react-icons/io5";
+
+import { SearchInputContext } from "@/app/layout";
 
 function Header({
   activeBE,
@@ -24,10 +28,11 @@ function Header({
   const [openProfile, setOpenProfile] = useState(false);
   
   const iconsMap = {
-    Home: LuSlack,
-    Profile: FaRegUser,
-    Proposals: IoBookOutline,
+    Home: IoHome,
+    Search: IoSearch,
   };
+
+  const { focusSearchInput } = useContext(SearchInputContext);
 
   const ToggleIcon = () =>
     showSettings ? (
@@ -71,6 +76,20 @@ function Header({
           </li>
           {menuItems.map((item, index) => {
             const IconComponent = iconsMap[item];
+            if (item === "Search") {
+              return (
+                <li
+                  key={index}
+                  className="h-12 p-2 px-5 py-2 transition-transform duration-300 transform rounded-full cursor-pointer bgGray hover:scale-105 flex items-center justify-center font-semibold text-[0.6em] text-[var(--text-black)]"
+                  onClick={(e) => { e.stopPropagation(); focusSearchInput(); }}
+                >
+                  {IconComponent && (
+                    <IconComponent className="mr-2 text-[var(--text-black)] text-xl [filter:drop-shadow(0_0_3px_var(--blue))]" />
+                  )}
+                  {item}
+                </li>
+              );
+            }
             return (
               <li
                 key={index}

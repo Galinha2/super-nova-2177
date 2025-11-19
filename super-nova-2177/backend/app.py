@@ -255,6 +255,7 @@ class CommentIn(BaseModel):
     proposal_id: int
     user: str
     user_img: str
+    species: Optional[str] = "human"
     comment: str
 
 # --- Universe Info Endpoint ---
@@ -564,7 +565,13 @@ def list_proposals(
     search: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
+    """
+    List proposals, supporting filters:
+    - all, latest, oldest, topLikes, fewestLikes, popular, ai, company, human
+    - search: string search on title/description
+    """
     try:
+        # --- ORM MODE ---
         if SUPER_NOVA_AVAILABLE:
             query = db.query(Proposal)
 
@@ -579,20 +586,113 @@ def list_proposals(
                 )
 
             # FILTERS
+            from sqlalchemy import func, case
+            filter = (filter or "all").lower()
+            # Sorting/Filtering logic
             if filter == "latest":
                 query = query.order_by(desc(Proposal.created_at))
             elif filter == "oldest":
                 query = query.order_by(asc(Proposal.created_at))
+            elif filter == "toplikes":
+                vote_count = func.sum(case((ProposalVote.vote == "up", 1), else_=0)).label("upvote_count")
+                query = query.outerjoin(ProposalVote, Proposal.id == ProposalVote.proposal_id)\
+                    .group_by(Proposal.id)\
+                    .order_by(desc(vote_count))
+            elif filter == "fewestlikes":
+                vote_count = func.sum(case((ProposalVote.vote == "up", 1), else_=0)).label("upvote_count")
+                query = query.outerjoin(ProposalVote, Proposal.id == ProposalVote.proposal_id)\
+                    .group_by(Proposal.id)\
+                    .order_by(asc(vote_count))
+            elif filter == "popular":
+                from datetime import datetime, timedelta
+                since = datetime.utcnow() - timedelta(days=1)
+                vote_count = func.sum(case((ProposalVote.vote == "up", 1), else_=0)).label("upvote_count")
+                query = db.query(Proposal, vote_count)\
+                          .outerjoin(ProposalVote, Proposal.id == ProposalVote.proposal_id)\
+                          .filter(Proposal.created_at >= since)\
+                          .group_by(Proposal.id)\
+                          .order_by(desc(vote_count))
+                proposals = [p for p, _ in query.all()]
+            elif filter == "ai":
+                query = query.filter(Proposal.author_type == "ai").order_by(desc(Proposal.created_at))
+            elif filter == "company":
+                query = query.filter(Proposal.author_type == "company").order_by(desc(Proposal.created_at))
+            elif filter == "human":
+                query = query.filter(Proposal.author_type == "human").order_by(desc(Proposal.created_at))
             else:
+                # Default: all, order by id desc
                 query = query.order_by(desc(Proposal.id))
 
-            proposals = query.all()
+            if filter != "popular":
+                proposals = query.all()
 
+        # --- FALLBACK (RAW SQL) ---
         else:
-            # Fallback SQL direto
-            base_query = "SELECT * FROM proposals ORDER BY id DESC"
-            proposals = db.execute(text(base_query)).fetchall()
+            filter_sql = (filter or "all").lower()
+            base_query = "SELECT * FROM proposals"
+            where_clauses = []
+            order_clause = "ORDER BY id DESC"
 
+            # SEARCH
+            params = {}
+            if search and search.strip():
+                where_clauses.append(
+                    "(title ILIKE :search OR body ILIKE :search OR author ILIKE :search)"
+                )
+                params["search"] = f"%{search}%"
+
+            # FILTERS
+            if filter_sql == "latest":
+                order_clause = "ORDER BY date DESC"
+            elif filter_sql == "oldest":
+                order_clause = "ORDER BY date ASC"
+            elif filter_sql == "ai":
+                where_clauses.append("author_type = 'ai'")
+            elif filter_sql == "company":
+                where_clauses.append("author_type = 'company'")
+            elif filter_sql == "human":
+                where_clauses.append("author_type = 'human'")
+            # For topLikes, fewestLikes, popular, fallback: order by likes/dislikes if possible
+            elif filter_sql in ("toplikes", "fewestlikes", "popular"):
+                # For fallback, try to join votes table if exists
+                # We assume a "votes" table with proposal_id, choice ('up'/'down')
+                if filter_sql == "toplikes":
+                    base_query = """
+                        SELECT p.*, COUNT(v.id) AS upvotes
+                        FROM proposals p
+                        LEFT JOIN votes v ON p.id = v.proposal_id AND v.choice = 'up'
+                        GROUP BY p.id
+                        ORDER BY upvotes DESC
+                    """
+                    order_clause = ""
+                elif filter_sql == "fewestlikes":
+                    base_query = """
+                        SELECT p.*, COUNT(v.id) AS upvotes
+                        FROM proposals p
+                        LEFT JOIN votes v ON p.id = v.proposal_id AND v.choice = 'up'
+                        GROUP BY p.id
+                        ORDER BY upvotes ASC
+                    """
+                    order_clause = ""
+                elif filter_sql == "popular":
+                    base_query = """
+                        SELECT p.*, COUNT(v.id) AS total_votes
+                        FROM proposals p
+                        LEFT JOIN votes v ON p.id = v.proposal_id
+                        GROUP BY p.id
+                        ORDER BY total_votes DESC
+                    """
+                    order_clause = ""
+
+            # Compose query
+            if "GROUP BY" not in base_query:
+                if where_clauses:
+                    base_query += " WHERE " + " AND ".join(where_clauses)
+                if order_clause:
+                    base_query += f" {order_clause}"
+            proposals = db.execute(text(base_query), params).fetchall()
+
+        # --- SERIALIZATION ---
         proposals_list = []
         for prop in proposals:
             if SUPER_NOVA_AVAILABLE:
@@ -617,49 +717,76 @@ def list_proposals(
                 user_name = getattr(prop, "userName", None) or getattr(prop, "author", None) or "Unknown"
                 user_initials = (user_name[:2].upper() if user_name else "UN")
 
-            #
-            votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == prop.id).all() if SUPER_NOVA_AVAILABLE else []
-            comments = db.query(Comment).filter(Comment.proposal_id == prop.id).all() if SUPER_NOVA_AVAILABLE else []
+            # Votes and Comments
+            if SUPER_NOVA_AVAILABLE:
+                votes = db.query(ProposalVote).filter(ProposalVote.proposal_id == prop.id).all()
+                comments = db.query(Comment).filter(Comment.proposal_id == prop.id).all()
+            else:
+                # fallback: try to get from votes and comments tables
+                votes = db.execute(
+                    text("SELECT * FROM votes WHERE proposal_id = :pid"),
+                    {"pid": prop.id}
+                ).fetchall()
+                comments = db.execute(
+                    text("SELECT * FROM comments WHERE proposal_id = :pid"),
+                    {"pid": prop.id}
+                ).fetchall()
 
-            # Serialize Harmonizer for likes/dislikes
+            # Likes/Dislikes
             likes = []
             dislikes = []
             for v in votes:
-                voter_val = getattr(v, "harmonizer_id", None)
-                harmonizer_obj = None
-                if SUPER_NOVA_AVAILABLE and voter_val:
-                    harmonizer_obj = db.query(Harmonizer).filter(Harmonizer.id == voter_val).first()
-                # fallback to voter username if no harmonizer
-                if not harmonizer_obj:
-                    voter = getattr(v, "voter", None)
+                if SUPER_NOVA_AVAILABLE:
+                    voter_val = getattr(v, "harmonizer_id", None)
+                    harmonizer_obj = None
+                    if voter_val:
+                        harmonizer_obj = db.query(Harmonizer).filter(Harmonizer.id == voter_val).first()
+                    if not harmonizer_obj:
+                        voter = getattr(v, "voter", None)
+                    else:
+                        voter = serialize_harmonizer(harmonizer_obj)
+                    vote_field = getattr(v, "vote", None)
+                    if vote_field is None:
+                        vote_field = getattr(v, "choice", None)
+                    vtype = getattr(v, "voter_type", "")
                 else:
-                    voter = serialize_harmonizer(harmonizer_obj)
-                vote_field = getattr(v, "vote", None)
-                if vote_field is None:
-                    vote_field = getattr(v, "choice", None)
+                    voter = getattr(v, "harmonizer_id", None) or getattr(v, "voter", "")
+                    vote_field = getattr(v, "vote", None) or getattr(v, "choice", None)
+                    vtype = getattr(v, "voter_type", "")
                 if vote_field == "up":
-                    likes.append({"voter": voter, "type": v.voter_type})
+                    likes.append({"voter": voter, "type": vtype})
                 elif vote_field == "down":
-                    dislikes.append({"voter": voter, "type": v.voter_type})
+                    dislikes.append({"voter": voter, "type": vtype})
 
-            # Corrigir a construção de comments_list
+            # Comments
             comments_list = []
             for c in comments:
-                author_obj = db.query(Harmonizer).filter(Harmonizer.id == c.author_id).first() if getattr(c, "author_id", None) else None
-                comments_list.append({
-                    "proposal_id": c.proposal_id,
-                    "user": getattr(author_obj, "username", "Anonymous") if author_obj else "Anonymous",
-                    "user_img": getattr(author_obj, "avatar_url", "") if author_obj else "",
-                    "comment": getattr(c, "content", "")
-                })
+                if SUPER_NOVA_AVAILABLE:
+                    author_obj = db.query(Harmonizer).filter(Harmonizer.id == c.author_id).first() if getattr(c, "author_id", None) else None
+                    comments_list.append({
+                        "proposal_id": c.proposal_id,
+                        "user": getattr(author_obj, "username", "Anonymous") if author_obj else "Anonymous",
+                        "user_img": getattr(author_obj, "profile_pic", "default.jpg") if author_obj else "default.jpg",
+                        "species": getattr(author_obj, "species", "human") if author_obj else "human",
+                        "comment": getattr(c, "content", "")
+                    })
+                else:
+                    comments_list.append({
+                        "proposal_id": getattr(c, "proposal_id", None),
+                        "user": getattr(c, "user", "Anonymous"),
+                        "user_img": getattr(c, "user_img", ""),
+                        "species": "human",
+                        "comment": getattr(c, "comment", "")
+                    })
+
             proposals_list.append({
                 "id": prop.id,
-                "title": prop.title,
+                "title": getattr(prop, "title", ""),
                 "userName": str(user_name),
                 "userInitials": user_initials,
-                "text": prop.description,
+                "text": getattr(prop, "description", "") if SUPER_NOVA_AVAILABLE else getattr(prop, "body", None) or getattr(prop, "description", ""),
                 "author_img": getattr(prop, "author_img", ""),
-                "time": prop.created_at.isoformat() if getattr(prop, "created_at", None) else "",
+                "time": getattr(prop, "created_at", None).isoformat() if getattr(prop, "created_at", None) else getattr(prop, "date", ""),
                 "author_type": getattr(prop, "author_type", "human"),
                 "likes": likes,
                 "dislikes": dislikes,
@@ -766,74 +893,113 @@ def decide(pid: int, threshold: float = 0.6, db: Session = Depends(get_db)):
 # --- Comment endpoint ---
 @app.post("/comments")
 def add_comment(c: CommentIn, db: Session = Depends(get_db)):
+    import datetime
     try:
-        if SUPER_NOVA_AVAILABLE:
-            # Obter author_id válido
-            author_obj = db.query(Harmonizer).filter(Harmonizer.username == c.user).first()
-            if not author_obj:
-                # Criar Harmonizer fallback se não existir
-                import datetime
-                author_obj = Harmonizer(
-                    username=c.user,
-                    email=f"{c.user}@example.com",  # Adicionado para satisfazer NOT NULL
-                    hashed_password="fallback",     # Necessário se campo NOT NULL
-                    profile_pic="default.jpg",
-                    bio="",
-                    is_active=True,
-                    is_admin=False,
-                    created_at=datetime.datetime.utcnow(),
-                    species="human",
-                    harmony_score=0.0,
-                    creative_spark=0.0,
-                    is_genesis=False,
-                    consent_given=True,
-                    cultural_preferences={},
-                    engagement_streaks=[],
-                    network_centrality=0.0,
-                    karma_score=0.0,
-                    last_passive_aura_timestamp=datetime.datetime.utcnow()
-                )
-                db.add(author_obj)
-                db.commit()
-                db.refresh(author_obj)
-            author_id = author_obj.id
-
-            # Obter vibenode_id válido
-            vibenode_obj = db.query(VibeNode).first()
-            if not vibenode_obj:
-                # Criar VibeNode fallback se não existir, garantindo author_id válido
-                vibenode_obj = VibeNode(
-                    name="default",
-                    author_id=author_obj.id  # Garante NOT NULL se necessário
-                )
-                db.add(vibenode_obj)
-                db.commit()
-                db.refresh(vibenode_obj)
-            vibenode_id = vibenode_obj.id
-
-            # Criar comentário
-            comment = Comment(
-                proposal_id=c.proposal_id,
-                content=c.comment,
-                author_id=author_id,
-                vibenode_id=vibenode_id
+        # --- 1. Obter ou criar Harmonizer ---
+        author_obj = db.query(Harmonizer).filter(Harmonizer.username == c.user).first() if SUPER_NOVA_AVAILABLE else None
+        if SUPER_NOVA_AVAILABLE and not author_obj:
+            author_obj = Harmonizer(
+                username=c.user,
+                email=f"{c.user}@example.com",
+                hashed_password="fallback",
+                species=c.species or "human",
+                profile_pic="default.jpg",
+                created_at=datetime.datetime.utcnow(),
+                is_active=True,
+                is_admin=False,
+                harmony_score=0.0,
+                creative_spark=0.0,
+                karma_score=0.0,
+                network_centrality=0.0,
+                last_passive_aura_timestamp=datetime.datetime.utcnow(),
+                consent_given=True,
+                bio=""
             )
-            db.add(comment)
+            db.add(author_obj)
+            db.commit()
+            db.refresh(author_obj)
+
+        species_value = getattr(author_obj, "species", c.species or "human") if author_obj else (c.species or "human")
+
+        # --- 2. Obter ou criar VibeNode ---
+        vibenode_obj = db.query(VibeNode).first()
+        if not vibenode_obj:
+            vibenode_obj = VibeNode(
+                name="default",
+                author_id=author_obj.id if author_obj else 1
+            )
+            db.add(vibenode_obj)
+            db.commit()
+            db.refresh(vibenode_obj)
+        vibenode_id = vibenode_obj.id
+
+        # --- 3. Criar Comment ---
+        comments_list = []
+        if SUPER_NOVA_AVAILABLE:
+            if author_obj and author_obj.id and vibenode_id:
+                # Atualizar profile_pic se frontend enviou imagem
+                if c.user_img and c.user_img.strip():
+                    author_obj.profile_pic = c.user_img
+                    db.add(author_obj)
+                    db.commit()
+                    db.refresh(author_obj)
+
+                comment = Comment(
+                    proposal_id=c.proposal_id,
+                    content=c.comment,
+                    author_id=author_obj.id,
+                    vibenode_id=vibenode_id,
+                    parent_comment_id=None,
+                    created_at=datetime.datetime.utcnow()
+                )
+                db.add(comment)
+                db.commit()
+                db.refresh(comment)
+                print("Creating comment:", {
+                    "proposal_id": c.proposal_id,
+                    "content": c.comment,
+                    "author_id": author_obj.id,
+                    "vibenode_id": vibenode_id
+                })
+
+                # Serializar comment com profile_pic somente se não for "default.jpg"
+                user_img_value = author_obj.profile_pic if author_obj.profile_pic != "default.jpg" else ""
+                comments_list = [{
+                    "proposal_id": comment.proposal_id,
+                    "user": getattr(author_obj, "username", "Anonymous"),
+                    "user_img": user_img_value,
+                    "species": getattr(author_obj, "species", "human"),
+                    "comment": comment.content
+                }]
         else:
+            user_img_value = c.user_img if c.user_img else ""
             db.execute(
                 text("INSERT INTO comments (proposal_id, user, user_img, comment) VALUES (:pid, :user, :user_img, :comment)"),
                 {
-                    "pid": c.proposal_id, 
+                    "pid": c.proposal_id,
                     "user": c.user or "Anonymous",
-                    "user_img": c.user_img or "/uploads/default_avatar.png",
+                    "user_img": user_img_value,
                     "comment": c.comment
                 }
             )
-        
-        db.commit()
-        return {"ok": True}
+            db.commit()
+            comments_list = [{
+                "proposal_id": c.proposal_id,
+                "user": c.user or "Anonymous",
+                "user_img": user_img_value,
+                "species": c.species or "human",
+                "comment": c.comment
+            }]
+
+        return {
+            "ok": True,
+            "species": species_value,
+            "comments": comments_list
+        }
     except Exception as e:
         db.rollback()
+        import traceback
+        print("❌ Failed to add comment:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Failed to add comment: {str(e)}")
 
 # --- Karma endpoint ---
@@ -957,7 +1123,8 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
             comments_list.append({
                 "proposal_id": c.proposal_id,
                 "user": getattr(author_obj, "username", "Anonymous") if author_obj else "Anonymous",
-                "user_img": getattr(author_obj, "avatar_url", "") if author_obj else "",
+                "user_img": getattr(author_obj, "profile_pic", "default.jpg") if author_obj else "default.jpg",
+                "species": getattr(author_obj, "species", "human") if author_obj else "human",
                 "comment": getattr(c, "content", "")
             })
 
@@ -1003,7 +1170,7 @@ def get_proposal(pid: int, db: Session = Depends(get_db)):
             {"pid": pid}
         )
         comments = comments_result.fetchall()
-        comments_list = [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "comment": c.comment} for c in comments]
+        comments_list = [{"proposal_id": c.proposal_id, "user": c.user, "user_img": c.user_img, "species": "human", "comment": c.comment} for c in comments]
 
         user_name = getattr(row, "userName", None) or getattr(row, "author", None) or "Unknown"
         user_initials = (user_name[:2].upper() if user_name else "UN")

@@ -42,6 +42,7 @@ function InsertComment({
           proposal_id: Number(proposalId),
           user: userData.name,
           user_img: avatar,
+          species: userData.species,
           comment: comment.trim(),
         }),
       });

@@ -3,11 +3,16 @@ import { useEffect, useState } from "react";
 import content from "@/assets/content.json";
 import LiquidGlass from "../liquid glass/LiquidGlass";
 import Link from "next/link";
-import { IoMenu, IoBookOutline } from "react-icons/io5";
-import { LuSlack } from "react-icons/lu";
+import { IoMenu } from "react-icons/io5";
 import Settings from "./content/Settings";
 import { IoIosClose } from "react-icons/io";
+import { IoHome } from "react-icons/io5";
+import { IoSearch } from "react-icons/io5";
+
 import { useUser } from "../profile/UserContext";
+
+import { useContext } from "react";
+import { SearchInputContext } from "@/app/layout";
 
 function HeaderMobile({
   activeBE,
@@ -17,17 +22,19 @@ function HeaderMobile({
   setNotify,
   showSettings,
   setShowSettings,
+  focusSearchInput,
 }) {
   const [openProfile, setOpenProfile] = useState(false);
   const header = Object.values(content.header.mobiletitles);
   const [showHeader, setShowHeader] = useState(true);
 
   const { userData } = useUser();
+  const { focusSearchInput: contextFocusSearchInput } = useContext(SearchInputContext);
 
   const iconsMap = {
-    Home: [LuSlack, "Home"],
+    Proposals: [IoHome, ""],
     Profile: ["", ""],
-    Proposals: [IoBookOutline, "Proposals"],
+    Search: [IoSearch, ""],
   };
 
   return (
@@ -65,11 +72,22 @@ function HeaderMobile({
             const IconComponent = iconsMap[item]?.[0];
             const label = iconsMap[item]?.[1];
 
-            return (
+            return item === "Search" ? (
               <li
-                className={`cursor-pointer rounded-[20px] w-13 h-13 bgGray ${
-                  index === 1 ? "" : "bgGray"
-                } transform transition-transform duration-300 hover:scale-105 flex flex-col items-center justify-center`}
+                className="cursor-pointer rounded-[20px] w-13 h-13 bgGray transform transition-transform duration-300 hover:scale-105 flex flex-col items-center justify-center"
+                key={index}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  (focusSearchInput || contextFocusSearchInput)();
+                }}
+              >
+                {IconComponent && (
+                  <IconComponent className="text-[var(--text-black)] text-2xl [filter:drop-shadow(0_0_3px_var(--blue))]" />
+                )}
+              </li>
+            ) : (
+              <li
+                className={`cursor-pointer rounded-[20px] w-13 h-13 bgGray transform transition-transform duration-300 hover:scale-105 flex flex-col items-center justify-center`}
                 key={index}
               >
                 <Link
@@ -83,7 +101,7 @@ function HeaderMobile({
                     <span className="text-[var(--text-black)] text-[0.5em]">
                       {label}
                     </span>
-                  )}{" "}
+                  )}
                 </Link>
               </li>
             );

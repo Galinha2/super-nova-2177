@@ -140,7 +140,7 @@ html {
 @media (min-width: 1025px) and (max-width: 1280px) {
   .settings-right {
     position: absolute;
-    right: -38%;
+    right: -40%;
     top: auto;
     transform: translateX(-50%);
   }

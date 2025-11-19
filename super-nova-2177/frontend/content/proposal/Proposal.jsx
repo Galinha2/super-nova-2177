@@ -35,10 +35,13 @@ function fetchFakeProposals() {
   return Promise.resolve(generateRandomProposals(5, true));
 }
 
+import { useContext } from "react";
+import { SearchInputContext } from "@/app/layout";
+
 function Proposal({ activeBE, setErrorMsg, setNotify }) {
   const [discard, setDiscard] = useState(true);
   const [filter, setFilter] = useState("All");
-  const inputRef = useRef(null);
+  const { inputRef } = useContext(SearchInputContext);
   const [search, setSearch] = useState("");
 
   const { data: posts, isLoading } = useQuery({

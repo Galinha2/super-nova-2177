@@ -69,7 +69,7 @@ function LikesInfo({ proposalId }) {
           setDislikes(proposal.dislikes || []);
         }
       } catch (err) {
-        console.error("Failed to fetch likes/dislikes:", err);
+        console.error("Failed to fetch likes/dislikes:", err); 
       }
     }
     fetchVotes();

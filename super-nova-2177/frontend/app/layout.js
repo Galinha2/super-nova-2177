@@ -7,8 +7,13 @@ import { UserProvider } from "@/content/profile/UserContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Error from "@/content/Error";
 import Notification from "@/content/Notification";
-import { useState } from "react";
+import { useState, useRef, useCallback, createContext } from "react";
 import AssistantOrb from "@/content/AssistantOrb";
+
+export const SearchInputContext = createContext({
+  inputRef: { current: null },
+  focusSearchInput: () => {},
+});
 
 const interTight = Inter_Tight({
   subsets: ["latin"],
@@ -32,6 +37,10 @@ export default function RootLayout({ children }) {
   const [errorMsg, setErrorMsg] = useState([]);
   const [notify, setNotify] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
+  const inputRef = useRef(null);
+  const focusSearchInput = useCallback(() => {
+    if (inputRef.current) inputRef.current.focus();
+  }, []);
 
   return (
     <html lang="en" data-scroll-behavior="smooth">
@@ -39,19 +48,21 @@ export default function RootLayout({ children }) {
         <QueryClientProvider client={queryClient}>
           {errorMsg.length > 0 && <Error messages={errorMsg} />}
           {notify.length > 0 && <Notification messages={notify} />}
-          <UserProvider>
-            <ActiveBEProvider>
-              <HeaderWrapper
-                showSettings={showSettings} 
-                setShowSettings={setShowSettings}
-                setNotify={setNotify}
-                errorMsg={errorMsg}
-                setErrorMsg={setErrorMsg}
-              />
-              <AssistantOrb />
-              {children}
-            </ActiveBEProvider>
-          </UserProvider>
+          <SearchInputContext.Provider value={{ inputRef, focusSearchInput }}>
+            <UserProvider>
+              <ActiveBEProvider>
+                <HeaderWrapper
+                  showSettings={showSettings}
+                  setShowSettings={setShowSettings}
+                  setNotify={setNotify}
+                  errorMsg={errorMsg}
+                  setErrorMsg={setErrorMsg}
+                />
+                <AssistantOrb />
+                {children}
+              </ActiveBEProvider>
+            </UserProvider>
+          </SearchInputContext.Provider>
         </QueryClientProvider>
       </body>
     </html>

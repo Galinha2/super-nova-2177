@@ -1,13 +1,13 @@
 {
   "header": {
     "titles": {
-      "home": "Home",
-      "proposals": "Proposals"
+      "proposals": "Home",
+      "search": "Search"
     },
     "mobiletitles": {
-      "placeholder": "Home",
+      "home": "Proposals",
       "profile": "Profile",
-      "proposals": "Proposals"
+      "search": "Search"
     },
     "settings": {
       "livebe": "Live BE",

@@ -1,15 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import Input from "./Input";
 import Filters from "./Filters";
+import { SearchInputContext } from "@/app/layout";
 
 function FilterHeader({ filter, setFilter, setSearch, search }) {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const { inputRef } = useContext(SearchInputContext);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.innerWidth > 1024) return; 
+      if (window.innerWidth > 1024) return;
       const currentScrollY = window.scrollY;
       if (currentScrollY > lastScrollY && currentScrollY > 50) {
         // scroll down
@@ -35,7 +37,7 @@ function FilterHeader({ filter, setFilter, setSearch, search }) {
       }`}
     >
       <Filters filter={filter} setFilter={setFilter} />
-      <Input setSearch={setSearch} search={search} />
+      <Input setSearch={setSearch} search={search} inputRef={inputRef} />
     </div>
   );
 }
