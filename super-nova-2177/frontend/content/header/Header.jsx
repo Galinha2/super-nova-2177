@@ -3,9 +3,6 @@ import { useState, useEffect, useContext } from "react";
 import LiquidGlass from "../liquid glass/LiquidGlass";
 import Link from "next/link";
 import { IoMdMenu, IoIosClose } from "react-icons/io";
-import { LuSlack } from "react-icons/lu";
-import { FaRegUser } from "react-icons/fa";
-import { IoBookOutline } from "react-icons/io5";
 import Settings from "./content/Settings";
 import content from "@/assets/content.json";
 import { useUser } from "../profile/UserContext";
@@ -28,7 +25,7 @@ function Header({
   const [openProfile, setOpenProfile] = useState(false);
   
   const iconsMap = {
-    Home: IoHome,
+    Proposals: IoHome,
     Search: IoSearch,
   };
 
@@ -61,7 +58,7 @@ function Header({
             {userData.avatar ? (
               <img className="rounded-full shadow-md min-w-13 w-13 h-13 min-h-13" src={userData.avatar} alt="user logo" />
             ) : userData.name ? (
-              <button className="min-w-13 shadow-md w-13 h-13 min-h-13 rounded-full bg-[var(--gray)] flex items-center justify-center text-[0.8em] font-bold">
+              <buttxon className="min-w-13 shadow-md w-13 h-13 min-h-13 rounded-full bg-[var(--gray)] flex items-center justify-center text-[0.8em] font-bold">
                 {(() => {
                   if (!userData.name) return "";
                   const trimmed = userData.name.trim().replace(/\s+/g, " ");
@@ -69,7 +66,7 @@ function Header({
                   if (names.length === 1) return names[0].substring(0, 2).toUpperCase();
                   return names[0][0].toUpperCase() + names[1][0].toUpperCase();
                 })()}
-              </button>
+              </buttxon>
             ) : (
               <img className="min-w-13 w-13" src="./supernova.png" alt="logo" />
             )}
@@ -102,7 +99,7 @@ function Header({
                   {IconComponent && (
                     <IconComponent className="mr-2 text-[var(--text-black)] text-xl [filter:drop-shadow(0_0_3px_var(--blue))]" />
                   )}
-                  {item}
+                  {index === 0 ? "Home" : item  }
                 </Link>
               </li>
             );
