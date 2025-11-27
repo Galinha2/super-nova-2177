@@ -52,6 +52,9 @@ def _set_status(item: FlaggedItem, status_value: str, db: Session) -> FlaggedIte
 
 
 def get_db_local():
+    import sys
+    import os
+    sys.path.insert(0, "/app/backend")
     from superNova_2177 import get_db
     return get_db()
 

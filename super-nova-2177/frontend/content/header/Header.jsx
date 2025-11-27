@@ -58,7 +58,7 @@ function Header({
             {userData.avatar ? (
               <img className="rounded-full shadow-md min-w-13 w-13 h-13 min-h-13" src={userData.avatar} alt="user logo" />
             ) : userData.name ? (
-              <buttxon className="min-w-13 shadow-md w-13 h-13 min-h-13 rounded-full bg-[var(--gray)] flex items-center justify-center text-[0.8em] font-bold">
+              <button className="min-w-13 shadow-md w-13 h-13 min-h-13 rounded-full bg-[var(--gray)] flex items-center justify-center text-[0.8em] font-bold">
                 {(() => {
                   if (!userData.name) return "";
                   const trimmed = userData.name.trim().replace(/\s+/g, " ");
@@ -66,7 +66,7 @@ function Header({
                   if (names.length === 1) return names[0].substring(0, 2).toUpperCase();
                   return names[0][0].toUpperCase() + names[1][0].toUpperCase();
                 })()}
-              </buttxon>
+              </button>
             ) : (
               <img className="min-w-13 w-13" src="./supernova.png" alt="logo" />
             )}

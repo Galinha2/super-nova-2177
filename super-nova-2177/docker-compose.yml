@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: example
       POSTGRES_DB: postgres
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - supernova_db_data:/var/lib/postgresql/data
 
@@ -22,8 +22,8 @@ services:
         source: ./backend
         target: /app/backend
       - type: bind
-        source: ./supernova_2177_ui_weighted
-        target: /app/supernova_2177_ui_weighted
+        source: ./backend/supernova_2177_ui_weighted
+        target: /app/backend/supernova_2177_ui_weighted
     environment:
       DATABASE_URL: postgresql://postgres:example@supernova_db:5432/postgres
     depends_on:

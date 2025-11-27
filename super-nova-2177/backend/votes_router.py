@@ -1,5 +1,30 @@
 
+# --- Garantir que o diretório backend está no sys.path ---
+import sys
+import os
+backend_path = os.path.dirname(__file__)
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
 
+
+# --- Adicionar supernova_2177_ui_weighted ao sys.path e garantir __init__.py ---
+import sys
+import os
+
+# Adicionar supernova_2177_ui_weighted ao sys.path e garantir __init__.py
+supernova_path = os.path.join(os.path.dirname(__file__), "supernova_2177_ui_weighted")
+if supernova_path not in sys.path:
+    sys.path.insert(0, supernova_path)
+# Garantir que a pasta é reconhecida como pacote
+init_file = os.path.join(supernova_path, "__init__.py")
+if not os.path.exists(init_file):
+    open(init_file, "a").close()
+
+try:
+    import db_models
+    print("✅ db_models importado com sucesso")
+except ImportError as e:
+    print(f"⚠️ Erro ao importar db_models: {e}")
 
 import logging
 from fastapi import APIRouter, HTTPException, Depends
@@ -8,7 +33,7 @@ from sqlalchemy import text
 from backend.db_utils import get_db
 
 try:
-    from supernova_2177_ui_weighted.db_models import ProposalVote
+    from db_models import ProposalVote
 except ImportError:
     ProposalVote = None
 
@@ -30,7 +55,7 @@ def add_vote(v: VoteIn, db: Session = Depends(get_db)):
     logger = logging.getLogger("votes_router")
     logger.info(f"Payload received: {v.dict()}")
     try:
-        from supernova_2177_ui_weighted.db_models import Harmonizer
+        from db_models import Harmonizer
 
         # Buscar o Harmonizer pelo username
         harmonizer = db.query(Harmonizer).filter_by(username=v.username).first()
@@ -88,7 +113,7 @@ def remove_vote(proposal_id: int, username: str, db: Session = Depends(get_db)):
     try:
         # Buscar o Harmonizer pelo username
         try:
-            from supernova_2177_ui_weighted.db_models import Harmonizer
+            from db_models import Harmonizer
         except ImportError:
             Harmonizer = None
         harmonizer = None

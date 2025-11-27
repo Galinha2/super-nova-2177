@@ -1,5 +1,20 @@
 import sys
 import os
+backend_path = os.path.dirname(__file__)
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
+import sys
+import os
+
+# Adicionar o path absoluto do módulo supernova_2177_ui_weighted e garantir __init__.py
+supernova_dir = os.path.join(os.path.dirname(__file__), "supernova_2177_ui_weighted")
+if supernova_dir not in sys.path:
+    sys.path.insert(0, supernova_dir)
+# Garantir que a pasta é reconhecida como pacote
+init_file = os.path.join(supernova_dir, "__init__.py")
+if not os.path.exists(init_file):
+    open(init_file, "a").close()
+
 import time
 import shutil
 import uuid
@@ -18,29 +33,15 @@ print("=== DEBUG INFO ===")
 print(f"Current directory: {os.getcwd()}")
 print(f"Directory contents: {os.listdir('.')}")
 
-possible_paths = [
-    '/app/supernova_2177_ui_weighted',
-    '/supernova_2177_ui_weighted',
-    os.path.join(os.path.dirname(__file__), 'supernova_2177_ui_weighted'),
-    os.path.join(os.path.dirname(__file__), '..', 'supernova_2177_ui_weighted'),
-]
-
-supernova_dir = None
-for path in possible_paths:
-    path = os.path.normpath(path)
-    print(f"Checking path: {path}")
-    if os.path.exists(path) and os.path.isdir(path):
-        supernova_dir = path
-        print(f"✅ Found SuperNova directory at: {path}")
-        print(f"Contents: {os.listdir(path)}")
-        break
-
-if supernova_dir:
-    supernova_file_path = os.path.join(supernova_dir, 'supernova_2177.py')
+supernova_dir_check = '/app/backend/supernova_2177_ui_weighted'
+print(f"Checking SuperNova directory: {supernova_dir_check}")
+if os.path.exists(supernova_dir_check) and os.path.isdir(supernova_dir_check):
+    print(f"✅ Found SuperNova directory at: {supernova_dir_check}")
+    print(f"Contents: {os.listdir(supernova_dir_check)}")
+    supernova_file_path = os.path.join(supernova_dir_check, 'supernova_2177.py')
     print(f"=== PATH CHECK ===")
     print(f"supernova_2177.py file path: {supernova_file_path}")
     print(f"File exists: {os.path.isfile(supernova_file_path)}")
-
     if os.path.isfile(supernova_file_path):
         try:
             with open(supernova_file_path, 'r') as f:
@@ -50,22 +51,16 @@ if supernova_dir:
                 print(">", line.rstrip())
         except Exception as e:
             print(f"Could not read file: {e}")
-
-if not supernova_dir:
-    print("❌ SuperNova directory not found in any known location")
-    SUPER_NOVA_AVAILABLE = False
-else:
-    # Adicionar ao Python path
-    if supernova_dir not in sys.path:
-        sys.path.insert(0, supernova_dir)
-    
+    # Add /app/backend/supernova_2177_ui_weighted to sys.path for correct imports
+    if "/app/backend/supernova_2177_ui_weighted" not in sys.path:
+        sys.path.insert(0, "/app/backend/supernova_2177_ui_weighted")
     try:
-        from supernova_2177_ui_weighted.superNova_2177 import (
-            register_vote, tally_votes, decide as weighted_decide, 
+        from superNova_2177 import (
+            register_vote, tally_votes, decide as weighted_decide,
             get_threshold as get_weighted_threshold, SessionLocal, get_db,
             get_settings, DB_ENGINE_URL
         )
-        from supernova_2177_ui_weighted.db_models import (
+        from db_models import (
             Proposal, ProposalVote, Comment, Decision, Run, Harmonizer, VibeNode, SystemState
         )
         SUPER_NOVA_AVAILABLE = True
@@ -85,6 +80,9 @@ else:
         import traceback
         traceback.print_exc()
         SUPER_NOVA_AVAILABLE = False
+else:
+    print("❌ SuperNova directory not found at /app/backend/supernova_2177_ui_weighted")
+    SUPER_NOVA_AVAILABLE = False
 
 #
 if not SUPER_NOVA_AVAILABLE:
@@ -1279,7 +1277,7 @@ def remove_vote(proposal_id: int, voter: str, db: Session = Depends(get_db)):
 
 # --- Register votes_router ---
 
-# Import votes_router from db_utils to avoid circular import
+# Import votes_router from backend.votes_router
 from backend.votes_router import router as votes_router
 app.include_router(votes_router)
 
